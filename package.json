@@ -1,0 +1,17 @@
+{
+  "name": "precog-skill",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "OpenClaw skill for PrecogMasterV8 prediction markets",
+  "scripts": {
+    "test":        "vitest run",
+    "test:markets": "vitest run tests/markets.test.mjs",
+    "test:trade":   "vitest run tests/trade.test.mjs"
+  },
+  "dependencies": {
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  }
+}
