@@ -49,11 +49,11 @@ Example output:
 ```
 Active Markets (2)
 
-  [4]  Which AI model will be the top performer at the end of March?
-       → Claude (67.3%)  USDC  ends Mar 31, 2026
+[4] Which AI model will be the top performer at the end of March?
+    📈 Claude  67.3%  💰 USDC  📅 Mar 31, 2026
 
-  [5]  Will ETH hit $5k by Q2?
-       → YES (58.1%)  USDC  ends Jun 30, 2026
+[5] Will ETH hit $5k by Q2?
+    📈 YES  58.1%  💰 USDC  📅 Jun 30, 2026
 
 ```
 

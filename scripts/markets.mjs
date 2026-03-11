@@ -37,7 +37,11 @@ export async function main(deps = {}) {
       const [question, , , , outcomesRaw, , , , , endTs] = market;
       if (status(endTs) !== "active") continue;
 
-      const outs = outcomes(outcomesRaw);
+      const rawOuts = outcomes(outcomesRaw);
+      // outcomes() splits by "|"; some markets use "," — normalise
+      const outs = (rawOuts.length === 1 && rawOuts[0].includes(","))
+        ? rawOuts[0].split(",").map(s => s.trim()).filter(Boolean)
+        : rawOuts;
       let prediction = null;
       let token = null;
       try {
@@ -63,12 +67,12 @@ export async function main(deps = {}) {
 
     console.log(`\nActive Markets (${active.length})\n`);
     for (const m of active) {
-      console.log(`  [${m.id}]  ${m.question}`);
+      const tok = m.token ? `  💰 ${m.token}` : "";
+      console.log(`[${m.id}] ${m.question}`);
       if (m.prediction) {
-        const tok = m.token ? `  ${m.token}` : "";
-        console.log(`       → ${m.prediction.label} (${m.prediction.pct}%)${tok}  ends ${date(m.endTs)}`);
+        console.log(`    📈 ${m.prediction.label}  ${m.prediction.pct}%${tok}  📅 ${date(m.endTs)}`);
       } else {
-        console.log(`       ends ${date(m.endTs)}`);
+        console.log(`    📅 ${date(m.endTs)}`);
       }
       console.log("");
       result.push(m);
