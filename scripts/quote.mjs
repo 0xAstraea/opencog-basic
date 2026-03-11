@@ -7,6 +7,12 @@
 //   node quote.mjs --market <id> --outcome <n> --cost <usdc>     [--buy | --sell]
 //   node quote.mjs --market <id> --outcome <n> --price <0.0-1.0> [--buy | --sell]
 //
+// IMPORTANT — choosing the right flag:
+//   User says "buy N shares"                      → --shares N
+//   User says "spend $X" / "for $X" / "budget $X" → --cost X
+//   User says "reach X%" / "move to X%" /
+//             "push to X%" / "target X%"           → --price 0.X   ← DO NOT guess shares manually
+//
 // --outcome is 1-based (1 = first outcome, usually YES).
 // --buy / --sell show only that side. Omit both to show buy and sell.
 // Env: PRECOG_RPC_URL (optional)
