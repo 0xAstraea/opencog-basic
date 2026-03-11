@@ -43,6 +43,8 @@ Show all markets ever created (titles only, no prices):
 node {baseDir}/scripts/markets.mjs --all
 ```
 
+> **Always display the raw script output verbatim.** Do not reformat, summarize, or convert to a table.
+
 ---
 
 ## Quote a Trade
