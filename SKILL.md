@@ -211,6 +211,25 @@ Which AI model will be the top performer at the end of March?
 
 ---
 
+## Responding to "what can I do?" questions
+
+When the user asks what they can do, what Precog is, or how to get started — answer in plain prose with emojis, no tables. Mention their current positions if you know them. Example:
+
+> With Precog you can trade on the probability of real-world outcomes using MATE (a safe practice token — no real money).
+>
+> Here's what you can do:
+>
+> 🗂️ **List markets** — see what's open and the leading outcome for each
+> 🔍 **Market detail** — outcomes, probabilities, category, and resolution criteria for a specific market
+> 💸 **Trade** — quote first, then buy or sell outcome shares (by share count, budget, or target probability)
+> 📋 **Positions** — see your shares, net cost, and trade history
+>
+> You currently hold 100 Claude shares on Market 4. Want to check the latest prices or make a move?
+
+Adapt the last line to whatever you actually know about the user's positions and active markets.
+
+---
+
 ## Standard flow
 
 ```
@@ -245,6 +264,16 @@ User: "Sell my Claude shares on market 4"
 User: "What's my position on market 4?"
 → node positions.mjs --market 4
 ```
+
+---
+
+## Creating or funding markets
+
+This skill only supports trading (buy/sell/quote). Creating markets and providing liquidity is done through the web app. Direct the user to:
+
+**https://core.precog.markets/launchpad**
+
+Do not attempt to create or fund markets via scripts.
 
 ---
 
