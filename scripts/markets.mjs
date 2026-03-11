@@ -39,6 +39,7 @@ export async function main(deps = {}) {
 
       const outs = outcomes(outcomesRaw);
       let prediction = null;
+      let token = null;
       try {
         const [buyPrices] = await read("marketPrices", [BigInt(i)]);
         let bestIdx = 1;
@@ -47,8 +48,12 @@ export async function main(deps = {}) {
         }
         prediction = { label: outs[bestIdx - 1], pct: pct(buyPrices[bestIdx]) };
       } catch {}
+      try {
+        const [, , colSymbol] = await read("marketCollateralInfo", [BigInt(i)]);
+        token = colSymbol;
+      } catch {}
 
-      active.push({ id: i, question, endTs, outs, prediction });
+      active.push({ id: i, question, endTs, outs, prediction, token });
     }
 
     if (active.length === 0) {
@@ -60,7 +65,8 @@ export async function main(deps = {}) {
     for (const m of active) {
       console.log(`  [${m.id}]  ${m.question}`);
       if (m.prediction) {
-        console.log(`       → ${m.prediction.label} (${m.prediction.pct}%)  ends ${date(m.endTs)}`);
+        const tok = m.token ? `  ${m.token}` : "";
+        console.log(`       → ${m.prediction.label} (${m.prediction.pct}%)${tok}  ends ${date(m.endTs)}`);
       } else {
         console.log(`       ends ${date(m.endTs)}`);
       }

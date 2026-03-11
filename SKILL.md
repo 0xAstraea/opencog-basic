@@ -43,7 +43,19 @@ Show all markets ever created (titles only, no prices):
 node {baseDir}/scripts/markets.mjs --all
 ```
 
-> **Always display the raw script output verbatim.** Do not reformat, summarize, or convert to a table.
+> **Always wrap script output in a fenced code block** (triple backticks) when showing it to the user. Never reformat, summarize, or convert to a table.
+
+Example output:
+```
+Active Markets (2)
+
+  [4]  Which AI model will be the top performer at the end of March?
+       → Claude (67.3%)  USDC  ends Mar 31, 2026
+
+  [5]  Will ETH hit $5k by Q2?
+       → YES (58.1%)  USDC  ends Jun 30, 2026
+
+```
 
 ---
 
