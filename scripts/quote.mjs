@@ -3,38 +3,85 @@
 // Always run before buy or sell — show the output to the user and confirm.
 //
 // Usage:
-//   node quote.mjs --market <id> --outcome <n> --shares <amount>
+//   node quote.mjs --market <id> --outcome <n> --shares <amount> [--buy | --sell]
+//   node quote.mjs --market <id> --outcome <n> --cost <usdc>     [--buy | --sell]
+//   node quote.mjs --market <id> --outcome <n> --price <0.0-1.0> [--buy | --sell]
 //
 // --outcome is 1-based (1 = first outcome, usually YES).
+// --buy / --sell show only that side. Omit both to show buy and sell.
 // Env: PRECOG_RPC_URL (optional)
 import { fileURLToPath } from "url";
 import * as client from "./lib/client.mjs";
 import { parseArgs, requireArgs } from "./lib/args.mjs";
+import { LSLMSR, marketSharesFromCost, marketPriceAfterTrade, getFuturePriceAfterTrade } from "./lib/helper.mjs";
 
 export async function main(deps = {}) {
   const { read, outcomes, pct, toFP64, fromFP64 } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   const a = _parseArgs();
-  _requireArgs(a, ["market", "outcome", "shares"]);
+  _requireArgs(a, ["market", "outcome"]);
+
+  if (!("shares" in a) && !("cost" in a) && !("price" in a)) {
+    throw new Error("Provide one of: --shares <n>, --cost <usdc>, --price <0.0-1.0>");
+  }
+
+  const showBuy  = !("sell" in a);
+  const showSell = !("buy"  in a);
 
   const marketId = BigInt(a.market);
   const outcome  = parseInt(a.outcome);
-  const sharesFP = toFP64(a.shares);
 
   const market = await read("markets", [marketId]);
   const [question, , , , outcomesRaw] = market;
   const [, , colSymbol] = await read("marketCollateralInfo", [marketId]);
 
-  const outs  = outcomes(outcomesRaw);
-  const label = outs[outcome - 1] ?? `Outcome ${outcome}`;
+  const rawOuts = outcomes(outcomesRaw);
+  const outcomeList = (rawOuts.length === 1 && rawOuts[0].includes(","))
+    ? rawOuts[0].split(",").map(s => s.trim()).filter(Boolean)
+    : rawOuts;
+  const label = outcomeList[outcome - 1] ?? `Outcome ${outcome}`;
 
+  // Always fetch market state for future price calculations
+  const [, alphaFP, , sellFeeFP] = await read("marketSetupInfo", [marketId]);
+  const [, sharesBalancesFP]     = await read("marketSharesInfo", [marketId]);
+  const alpha    = fromFP64(alphaFP);
+  const sellFee  = fromFP64(sellFeeFP);
+  const sharesArr = sharesBalancesFP.map(fp => fromFP64(fp)); // keep 1-indexed
+
+  let sharesNum;
+
+  if ("cost" in a) {
+    sharesNum = Math.floor(marketSharesFromCost(sharesArr, alpha, outcome, parseFloat(a.cost)));
+  } else if ("price" in a) {
+    const outcomesBalances = {};
+    for (let j = 0; j < outcomeList.length; j++) {
+      outcomesBalances[outcomeList[j]] = sharesArr[j + 1];
+    }
+    const lslmsr   = LSLMSR.fromState(outcomesBalances, alpha);
+    lslmsr.sellFee = sellFee;
+    sharesNum = Math.floor(lslmsr.maxSharesFromPrice(label, parseFloat(a.price)));
+  } else {
+    sharesNum = parseFloat(a.shares);
+  }
+
+  if (sharesNum <= 0) {
+    console.log("\n❌  Not enough for even 1 share.\n");
+    return null;
+  }
+
+  const sharesFP  = toFP64(sharesNum);
   const buyCostFP = await read("marketBuyPrice",  [marketId, BigInt(outcome), sharesFP]);
   const sellRetFP = await read("marketSellPrice", [marketId, BigInt(outcome), sharesFP]);
+  const buyCost   = fromFP64(BigInt(buyCostFP));
+  const sellRet   = fromFP64(BigInt(sellRetFP));
+  const perShare  = buyCost / sharesNum;
 
-  const buyCost  = fromFP64(BigInt(buyCostFP));
-  const sellRet  = fromFP64(BigInt(sellRetFP));
-  const perShare = buyCost / Number(a.shares);
+  const futureBuyPrice  = marketPriceAfterTrade(sharesArr, alpha, outcome, sharesNum);
+  const futureSellPrice = getFuturePriceAfterTrade(sharesArr, alpha, outcome, -sharesNum);
+  const maxReturn       = sharesNum;
+  const buyProfit       = maxReturn - buyCost;
+  const sellPerShare    = sellRet / sharesNum;
 
   let prob = "N/A";
   try {
@@ -42,19 +89,36 @@ export async function main(deps = {}) {
     prob = pct(buyPrices[outcome]) + "%";
   } catch {}
 
-  console.log(`\nQuote — Market ${a.market}: ${question}`);
-  console.log(`${"─".repeat(55)}`);
-  console.log(`  Outcome      : ${label}`);
-  console.log(`  Shares       : ${a.shares}`);
-  console.log(`  Implied prob : ${prob}`);
-  console.log(`\n  Buy  ${a.shares} shares → costs  ~${buyCost.toFixed(4)} ${colSymbol}`);
-  console.log(`  Sell ${a.shares} shares → returns ~${sellRet.toFixed(4)} ${colSymbol}`);
-  console.log(`  Cost per share: ${perShare.toFixed(4)} ${colSymbol}`);
-  console.log(`\n  Suggested --max for buy : ${(buyCost * 1.01).toFixed(4)}`);
-  console.log(`  Suggested --min for sell: ${(sellRet * 0.99).toFixed(4)}`);
+  const hr = "─".repeat(57);
+
+  console.log(`\n📋  Quote — Market ${a.market}: ${question}`);
+  console.log(hr);
+  console.log(`  🎯  Outcome      : ${label}`);
+  console.log(`  🔢  Shares       : ${sharesNum}`);
+  console.log(`  📊  Current prob : ${prob}`);
+
+  if (showBuy) {
+    console.log(`\n  🛒  Buy ${sharesNum} shares`);
+    console.log(`       💵  Cost           : ~${buyCost.toFixed(4)} ${colSymbol}`);
+    console.log(`       📏  Price / share  : ${perShare.toFixed(4)} ${colSymbol}`);
+    console.log(`       📈  Prob after buy : ${pct(futureBuyPrice)}%  (market moves up ↑)`);
+    console.log(`       🏆  Max return     : ${maxReturn.toFixed(4)} ${colSymbol}   (+${buyProfit.toFixed(4)} profit if "${label}" wins)`);
+    console.log(`\n  ⚡  Suggested --max for buy  : ${(buyCost * 1.01).toFixed(4)}`);
+  }
+
+  if (showSell) {
+    console.log(`\n  💸  Sell ${sharesNum} shares`);
+    console.log(`       💵  Return         : ~${sellRet.toFixed(4)} ${colSymbol}`);
+    console.log(`       📏  Price / share  : ${sellPerShare.toFixed(4)} ${colSymbol}`);
+    console.log(`       📉  Prob after sell: ${pct(futureSellPrice)}%  (market moves down ↓)`);
+    console.log(`\n  ⚡  Suggested --min for sell : ${(sellRet * 0.99).toFixed(4)}`);
+  }
+
   console.log("");
 
-  return { label, buyCost, sellRet, perShare, prob, suggestedMax: buyCost * 1.01, suggestedMin: sellRet * 0.99 };
+  return { label, shares: sharesNum, buyCost, sellRet, perShare, prob,
+           futureBuyPrice, futureSellPrice, maxReturn, buyProfit, sellPerShare,
+           suggestedMax: buyCost * 1.01, suggestedMin: sellRet * 0.99 };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

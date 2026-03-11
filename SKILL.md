@@ -62,10 +62,57 @@ Active Markets (2)
 ## Quote a Trade
 
 Always run before buy or sell. Show the output to the user and confirm before proceeding.
+
+Quote by number of shares:
 ```bash
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount>
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount> [--buy | --sell]
 ```
+
+Quote by budget (how many shares can I get for $X?):
+```bash
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc> [--buy | --sell]
+```
+
+Quote by target price (how many shares to move probability to X?):
+```bash
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0.0-1.0> [--buy | --sell]
+```
+
 `--outcome` is 1-based (1 = first outcome, usually YES).
+`--buy` shows only buy info. `--sell` shows only sell info. Omit both to show buy and sell.
+
+Example output (buy only — `--buy`):
+```
+📋  Quote — Market 4: Which AI model will be the top performer at the end of March?
+─────────────────────────────────────────────────────────
+  🎯  Outcome      : Claude
+  🔢  Shares       : 47
+  📊  Current prob : 15.1%
+
+  🛒  Buy 47 shares
+       💵  Cost           : ~38.4521 MATE
+       📏  Price / share  : 0.8181 MATE
+       📈  Prob after buy : 18.3%  (market moves up ↑)
+       🏆  Max return     : 47.0000 MATE   (+8.5479 profit if "Claude" wins)
+
+  ⚡  Suggested --max for buy  : 38.8366
+```
+
+Example output (sell only — `--sell`):
+```
+📋  Quote — Market 4: Which AI model will be the top performer at the end of March?
+─────────────────────────────────────────────────────────
+  🎯  Outcome      : Claude
+  🔢  Shares       : 47
+  📊  Current prob : 15.1%
+
+  💸  Sell 47 shares
+       💵  Return         : ~35.2341 MATE
+       📏  Price / share  : 0.7497 MATE
+       📉  Prob after sell: 13.1%  (market moves down ↓)
+
+  ⚡  Suggested --min for sell : 34.8818
+```
 
 ---
 
