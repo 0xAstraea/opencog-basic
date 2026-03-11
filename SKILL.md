@@ -1,6 +1,6 @@
 ---
 name: precog
-description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create a local wallet, list markets, check prices, buy and sell outcome shares. IMPORTANT: always paste script output verbatim inside a code block — never summarize, shorten, or reformat it."
+description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create a local wallet, list markets, check prices, buy and sell outcome shares. IMPORTANT: always paste script output verbatim inside a fenced code block — never summarize, shorten, or reformat it."
 ---
 
 # Precog Prediction Markets
@@ -9,15 +9,15 @@ Prediction markets on Base Sepolia. No config needed — contract address and RP
 
 > **⚠️ Run scripts sequentially.** Parallel transactions will fail with nonce collisions.
 >
-> **⚠️ Do NOT create batch/automation scripts.** Use existing scripts one at a time. Work through tasks step-by-step rather than trying to automate everything into a single script.
+> **⚠️ Do NOT create batch/automation scripts.** Use existing scripts one at a time.
 >
-> **⚠️ Do NOT edit skill files.** If you find bugs, issues, or missing functionality in these scripts/docs, report them to the user instead of fixing them yourself. Say what's broken and let them decide how to handle it.
+> **⚠️ Do NOT edit skill files.** Report bugs or missing features to the user instead of fixing them.
 >
-> **⚠️ ALWAYS show raw script output verbatim in a fenced code block.** Never reformat, summarize, shorten, or convert to bullet points or tables. The user must see exactly what the script printed.
+> **⚠️ Always show script output verbatim in a fenced code block.** Never reformat, summarize, or convert to bullet points or tables. The user must see exactly what the script printed — every emoji, every line.
 >
-> **⚠️ ALWAYS run `quote` before `buy` or `sell`. Show the full quote output to the user and wait for explicit confirmation before executing the trade. NEVER skip this step, even if the user seems certain.**
+> **⚠️ Always run `quote` before `buy` or `sell`.** Show the full quote output to the user and wait for explicit confirmation before executing the trade.
 >
-> **⚠️ NEVER modify trade parameters.** Run `buy.mjs` and `sell.mjs` with exactly the shares and --max/--min values from the confirmed quote. If the script fails, show the exact error message and stop — do NOT retry with a smaller amount, different parameters, or any workaround. Token approval is handled automatically by the script; never use allowance as a reason to change the trade size.
+> **⚠️ Never modify trade parameters.** If a script fails, show the exact error and stop. Do not retry with a different share count or any workaround. Token approval is handled automatically — never use allowance as a reason to change the trade size.
 
 ---
 
@@ -26,28 +26,19 @@ Prediction markets on Base Sepolia. No config needed — contract address and RP
 Check status or create a new wallet:
 ```bash
 node {baseDir}/scripts/setup.mjs
-```
-```bash
 node {baseDir}/scripts/setup.mjs --generate
 ```
 The private key is saved to `~/.openclaw/.env` and **never printed**. Only the address is shown.
-Ask the user to fund the address with ETH (gas) and USDC (trading).
+Ask the user to fund the address with ETH (gas) and collateral token (trading).
 
 ---
 
 ## List Markets
 
-Show active markets with the current prediction (most likely outcome):
 ```bash
 node {baseDir}/scripts/markets.mjs
-```
-
-Show all markets ever created (titles only, no prices):
-```bash
 node {baseDir}/scripts/markets.mjs --all
 ```
-
-> **Always wrap script output in a fenced code block** (triple backticks) when showing it to the user. Never reformat, summarize, or convert to a table.
 
 Example output:
 ```
@@ -65,81 +56,67 @@ Active Markets (2)
 
 ## Quote a Trade
 
-> **⚠️ Copy the ENTIRE terminal output into a fenced code block. Do not paraphrase, shorten, or reformat any line. Every line the script prints must appear exactly as-is, including emojis, spacing, and the suggested --max/--min values.**
+**Always run before buy or sell.** Show the full output verbatim in a fenced code block. Ask the user to confirm before proceeding.
 
-Always run before buy or sell. After showing the full output, ask the user to confirm.
+### Choosing the right flag — CRITICAL
 
-### Which flag to use
-
-| User says | Flag to use | Example |
+| What the user says | Flag to use | Example command |
 |---|---|---|
 | "buy N shares" | `--shares N` | `--shares 50` |
 | "spend $X" / "for $X" / "budget $X" | `--cost X` | `--cost 50` |
-| "reach X%" / "move to X%" / "push to X%" / "target X%" | `--price 0.X` | `--price 0.20` |
+| "reach X%" / "move to X%" / "push to X%" / "target X%" | `--price 0.X` | `--price 0.25` |
+
+**Do NOT guess share counts manually when the user gives a percentage target. Use `--price`.**
 
 ```bash
 node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount> --buy
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc>   --buy
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0-1>   --buy
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc>     --buy
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0.0-1.0> --buy
 ```
 
-`--outcome` is 1-based (1 = first outcome, usually YES).
-`--buy` shows only buy info. `--sell` shows only sell info. Omit both to show buy and sell.
+- `--outcome` is 1-based (1 = first outcome, usually YES)
+- `--buy` shows only the buy side; `--sell` shows only the sell side; omit both to show both sides
 
-Example output (buy only — `--buy`):
-```
-📋  Quote — Market 4: Which AI model will be the top performer at the end of March?
-─────────────────────────────────────────────────────────
-  🎯  Outcome      : Claude
-  🔢  Shares       : 47
-  📊  Current prob : 15.1%
-
-  🛒  Buy 47 shares
-       💵  Cost           : ~38.4521 MATE
-       📏  Price / share  : 0.8181 MATE
-       📈  Prob after buy : 18.3%  (market moves up ↑)
-       🏆  Max return     : 47.0000 MATE   (+8.5479 profit if "Claude" wins)
-
-  ⚡  Suggested --max for buy  : 38.8366
-```
-
-Example output (sell only — `--sell`):
+Example output (`--price 0.25 --buy`):
 ```
 📋  Quote — Market 4: Which AI model will be the top performer at the end of March?
 ─────────────────────────────────────────────────────────
   🎯  Outcome      : Claude
-  🔢  Shares       : 47
-  📊  Current prob : 15.1%
+  🔢  Shares       : 312
+  📊  Current prob : 14.2%
 
-  💸  Sell 47 shares
-       💵  Return         : ~35.2341 MATE
-       📏  Price / share  : 0.7497 MATE
-       📉  Prob after sell: 13.1%  (market moves down ↓)
+  🛒  Buy 312 shares
+       💵  Cost           : ~98.4521 MATE
+       📏  Price / share  : 0.3156 MATE
+       📈  Prob after buy : 25.0%  (market moves up ↑)
+       🏆  Max return     : 312.0000 MATE   (+213.5479 profit if "Claude" wins)
 
-  ⚡  Suggested --min for sell : 34.8818
+  ⚡  Suggested --max for buy  : 99.4366
+─── Paste ALL lines above verbatim to the user before asking to confirm ───
 ```
 
 ---
 
 ## Buy
 
-> **⚠️ Run `quote --buy` first. Show the output to the user. Do NOT proceed until the user confirms.**
-
 ```bash
 node {baseDir}/scripts/buy.mjs --market <id> --outcome <n> --shares <amount> --max <usdc>
 ```
-`--max` is the maximum USDC to spend — use the `Suggested --max` value from the quote output.
+
+- `--shares` — number of shares (from the quote output)
+- `--max` — maximum collateral to spend; use the `Suggested --max` value from the quote output
+- Token approval is handled automatically — never adjust `--max` or `--shares` for allowance reasons
 
 ---
 
 ## Sell
 
-> **⚠️ Run `quote --sell` first. Show the output to the user. Do NOT proceed until the user confirms.**
-
 ```bash
 node {baseDir}/scripts/sell.mjs --market <id> --outcome <n> --shares <amount> --min <usdc>
 ```
-`--min` is the minimum USDC to receive — use the `Suggested --min` value from the quote output.
+
+- `--shares` — number of shares to sell (check `positions.mjs` if unsure)
+- `--min` — minimum collateral to accept; use the `Suggested --min` value from the quote output
 
 ---
 
@@ -157,27 +134,27 @@ node {baseDir}/scripts/positions.mjs --market <id>
 User: "What markets are open?"
 → node markets.mjs
 
-User: "I want to buy YES on market 2 for $50"
-→ node quote.mjs --market 2 --outcome 1 --cost 50 --buy
-→ Show FULL quote output verbatim. Ask: "Confirm buy?"
-→ WAIT for user to say yes/confirm
-→ node buy.mjs --market 2 --outcome 1 --shares <n> --max <suggested-max>
+User: "Buy Claude for $50 on market 4"
+→ node quote.mjs --market 4 --outcome 1 --cost 50 --buy
+→ Paste full output verbatim. Ask: "Confirm buy?"
+→ Wait for user to confirm
+→ node buy.mjs --market 4 --outcome 1 --shares <n from quote> --max <suggested-max>
 
-User: "Buy Claude to reach 70% / move probability to 70%"
-→ node quote.mjs --market <id> --outcome <n> --price 0.70 --buy
-→ Show FULL quote output verbatim. Ask: "Confirm buy?"
-→ WAIT for user to say yes/confirm
-→ node buy.mjs --market <id> --outcome <n> --shares <n> --max <suggested-max>
+User: "Buy Claude to reach 25% on market 4"
+→ node quote.mjs --market 4 --outcome 1 --price 0.25 --buy
+→ Paste full output verbatim. Ask: "Confirm buy?"
+→ Wait for user to confirm
+→ node buy.mjs --market 4 --outcome 1 --shares <n from quote> --max <suggested-max>
 
-User: "Sell my YES shares on market 2"
-→ node positions.mjs --market 2          (find share count)
-→ node quote.mjs --market 2 --outcome 1 --shares <n> --sell
-→ Show FULL quote output verbatim. Ask: "Confirm sell?"
-→ WAIT for user to say yes/confirm
-→ node sell.mjs --market 2 --outcome 1 --shares <n> --min <suggested-min>
+User: "Sell my Claude shares on market 4"
+→ node positions.mjs --market 4        (find share count)
+→ node quote.mjs --market 4 --outcome 1 --shares <n> --sell
+→ Paste full output verbatim. Ask: "Confirm sell?"
+→ Wait for user to confirm
+→ node sell.mjs --market 4 --outcome 1 --shares <n> --min <suggested-min>
 
-User: "What's my position?"
-→ node positions.mjs --market 2
+User: "What's my position on market 4?"
+→ node positions.mjs --market 4
 ```
 
 ---
@@ -185,5 +162,5 @@ User: "What's my position?"
 ## Notes
 
 - Contract: `0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443` (Base Sepolia, hardcoded)
-- RPC: public endpoints used by default. Set `PRECOG_RPC_URL` to override with a private one.
+- RPC: public endpoints used by default. Set `PRECOG_RPC_URL` to override.
 - Wallet: generated locally, stored in `~/.openclaw/.env`, never leaves the machine.
