@@ -16,6 +16,8 @@ Prediction markets on Base Sepolia. No config needed — contract address and RP
 > **⚠️ ALWAYS show raw script output verbatim in a fenced code block.** Never reformat, summarize, shorten, or convert to bullet points or tables. The user must see exactly what the script printed.
 >
 > **⚠️ ALWAYS run `quote` before `buy` or `sell`. Show the full quote output to the user and wait for explicit confirmation before executing the trade. NEVER skip this step, even if the user seems certain.**
+>
+> **⚠️ NEVER modify trade parameters.** Run `buy.mjs` and `sell.mjs` with exactly the shares and --max/--min values from the confirmed quote. If the script fails, show the exact error message and stop — do NOT retry with a smaller amount, different parameters, or any workaround. Token approval is handled automatically by the script; never use allowance as a reason to change the trade size.
 
 ---
 

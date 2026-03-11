@@ -94,7 +94,7 @@ export async function ensureApproval(wallet, account, token, spender, amount) {
     args: [account.address, spender],
   });
   if (allowance >= amount) return;
-  console.log("Approving USDC...");
+  console.log(`Approving ${token}...`);
   const hash = await wallet.writeContract({
     address: token, abi: ERC20_ABI, functionName: "approve",
     args: [spender, amount], account,
