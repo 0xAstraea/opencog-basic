@@ -1,6 +1,6 @@
 ---
 name: precog
-description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create a local wallet, list markets, check prices, buy and sell outcome shares."
+description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create a local wallet, list markets, check prices, buy and sell outcome shares. IMPORTANT: always paste script output verbatim inside a code block — never summarize, shorten, or reformat it."
 ---
 
 # Precog Prediction Markets
@@ -63,7 +63,9 @@ Active Markets (2)
 
 ## Quote a Trade
 
-Always run before buy or sell. Show the **exact raw output** in a fenced code block — never summarize or reformat it. Then ask the user to confirm.
+> **⚠️ Copy the ENTIRE terminal output into a fenced code block. Do not paraphrase, shorten, or reformat any line. Every line the script prints must appear exactly as-is, including emojis, spacing, and the suggested --max/--min values.**
+
+Always run before buy or sell. After showing the full output, ask the user to confirm.
 
 Quote by number of shares:
 ```bash

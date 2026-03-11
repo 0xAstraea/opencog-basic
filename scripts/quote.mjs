@@ -114,6 +114,7 @@ export async function main(deps = {}) {
     console.log(`\n  ⚡  Suggested --min for sell : ${(sellRet * 0.99).toFixed(4)}`);
   }
 
+  console.log(`─── Paste ALL lines above verbatim to the user before asking to confirm ───`);
   console.log("");
 
   return { label, shares: sharesNum, buyCost, sellRet, perShare, prob,
