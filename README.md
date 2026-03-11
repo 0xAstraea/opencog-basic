@@ -1,6 +1,6 @@
 # precog
 
-OpenClaw skill for [PrecogMasterV8](https://precog.markets) prediction markets on Base Sepolia.
+OpenClaw skill for [PrecogMasterV8](https://precog.markets) prediction markets.
 
 ## Installation
 

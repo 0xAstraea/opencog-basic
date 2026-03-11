@@ -41,7 +41,23 @@ node {baseDir}/scripts/setup.mjs
 node {baseDir}/scripts/setup.mjs --generate
 ```
 The private key is saved to `~/.openclaw/.env` and **never printed**. Only the address is shown.
-Ask the user to fund the address with ETH (gas) and collateral token (trading).
+After generating, ask the user to fund the address with ETH (for gas) and the market's collateral token (for trading).
+
+Example output (wallet exists and funded):
+```
+Wallet: 0x77Ffa97c2dcDA0FF6c9393281993962FA633d9E1
+
+  ETH:  0.004210 ✓
+  MATE: 81.2300 ✓
+```
+
+Example output (wallet exists, no funds):
+```
+Wallet: 0x77Ffa97c2dcDA0FF6c9393281993962FA633d9E1
+
+  ETH:  0.000000 ⚠️  needs gas
+  MATE: 0.0000 (no funds)
+```
 
 ---
 
@@ -236,23 +252,38 @@ Adapt the last line to whatever you actually know about the user's positions and
 User: "What markets are open?"
 → node markets.mjs
 
+User: "Tell me more about market 4" / "What are the outcomes on market 4?"
+→ node market.mjs --market 4
+→ After output, ask: "Would you like to see the resolution criteria?"
+→ If yes: node market.mjs --market 4 --criteria
+
+User: "What's my position on market 4?"
+→ node positions.mjs --market 4
+
+User: "Show all my positions" / "Do I have any shares?"
+→ node markets.mjs --all   (get list of all market IDs)
+→ node positions.mjs --market <id>   (repeat for each market)
+
 User: "Use all my MATE to buy Claude on market 4"
 → node quote.mjs --market 4 --outcome 1 --all --buy
 → Paste full output verbatim. Ask: "Confirm buy?"
 → Wait for user to confirm
 → node buy.mjs --market 4 --outcome 1 --shares <n from quote> --max <suggested-max>
+→ After trade: suggest checking positions or new market price
 
 User: "Buy Claude for $50 on market 4"
 → node quote.mjs --market 4 --outcome 1 --cost 50 --buy
 → Paste full output verbatim. Ask: "Confirm buy?"
 → Wait for user to confirm
 → node buy.mjs --market 4 --outcome 1 --shares <n from quote> --max <suggested-max>
+→ After trade: suggest checking positions or new market price
 
 User: "Buy Claude to reach 25% on market 4"
 → node quote.mjs --market 4 --outcome 1 --price 0.25 --buy
 → Paste full output verbatim. Ask: "Confirm buy?"
 → Wait for user to confirm
 → node buy.mjs --market 4 --outcome 1 --shares <n from quote> --max <suggested-max>
+→ After trade: suggest checking positions or new market price
 
 User: "Sell my Claude shares on market 4"
 → node positions.mjs --market 4        (find share count)
@@ -260,9 +291,7 @@ User: "Sell my Claude shares on market 4"
 → Paste full output verbatim. Ask: "Confirm sell?"
 → Wait for user to confirm
 → node sell.mjs --market 4 --outcome 1 --shares <n> --min <suggested-min>
-
-User: "What's my position on market 4?"
-→ node positions.mjs --market 4
+→ After trade: suggest checking positions or remaining balance
 ```
 
 ---

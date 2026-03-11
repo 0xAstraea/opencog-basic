@@ -55,7 +55,7 @@ export async function main(deps = {}) {
     console.log(`  Address: ${account.address}\n`);
     console.log("Send to this address before trading:");
     console.log("  • ETH  — for gas");
-    console.log("  • USDC — for buying shares");
+    console.log(`  • Token  of the market— for buying shares`);
     console.log("\nPrivate key saved to ~/.openclaw/.env (never printed).");
     return { created: true, address: account.address };
   }
@@ -82,7 +82,7 @@ export async function main(deps = {}) {
     console.log(`  ${symbol}: ${fromRaw(bal, Number(decimals))} ${bal === 0n ? "(no funds)" : "✓"}`);
     colInfo = { symbol, balance: bal };
   } catch {
-    console.log("  USDC: (unavailable — check PRECOG_MASTER_ADDRESS)");
+    console.log(`  Collateral: (unavailable — check RPC or contract address)`);
   }
 
   return { address: account.address, ethBalance: ethBal, collateral: colInfo };
