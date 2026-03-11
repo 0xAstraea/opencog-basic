@@ -5,7 +5,19 @@ description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create
 
 # Precog Prediction Markets
 
-Prediction markets on Base Sepolia. No config needed — contract address and RPC are built in.
+Precog is a fully onchain prediction market protocol on Base Sepolia (mainnet on Base, Ethereum, and Arbitrum coming soon). Anyone can create a market around a real-world question, fund it with liquidity, and trade outcome shares. Prices equal implied probabilities (0–1). Every action is a signed onchain transaction — no custody, no central party.
+
+**MATE** is a non-monetary practice token (no real economic value). Markets denominated in MATE are safe to use for learning and experimentation. MATE can be claimed at [matetoken.xyz](https://matetoken.xyz).
+
+**What you can do here:**
+- Browse active prediction markets and outcome probabilities
+- Get detailed market info including category and resolution criteria
+- Quote, buy, and sell outcome shares using your local wallet
+- Check your positions (shares held, net cost, trade history)
+
+For full protocol documentation see `PRECOG.md` — it covers prediction markets 101, the LS-LMSR pricing curve, resolution via Reality.eth + Kleros, LP mechanics, MATE markets, and more.
+
+No config needed — contract address and RPC are built in.
 
 > **⚠️ Run scripts sequentially.** Parallel transactions will fail with nonce collisions.
 >
