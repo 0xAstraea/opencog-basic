@@ -33,10 +33,15 @@ Ask the user to fund the address with ETH (gas) and USDC (trading).
 
 ## List Markets
 
+Show active markets with the current prediction (most likely outcome):
 ```bash
 node {baseDir}/scripts/markets.mjs
 ```
-Shows all markets with current prices and status.
+
+Show all markets ever created (titles only, no prices):
+```bash
+node {baseDir}/scripts/markets.mjs --all
+```
 
 ---
 
