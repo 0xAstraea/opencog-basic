@@ -164,6 +164,12 @@ User: "I want to buy YES on market 2 for $50"
 → WAIT for user to say yes/confirm
 → node buy.mjs --market 2 --outcome 1 --shares <n> --max <suggested-max>
 
+User: "Buy Claude to reach 70% / move probability to 70%"
+→ node quote.mjs --market <id> --outcome <n> --price 0.70 --buy
+→ Show FULL quote output verbatim. Ask: "Confirm buy?"
+→ WAIT for user to say yes/confirm
+→ node buy.mjs --market <id> --outcome <n> --shares <n> --max <suggested-max>
+
 User: "Sell my YES shares on market 2"
 → node positions.mjs --market 2          (find share count)
 → node quote.mjs --market 2 --outcome 1 --shares <n> --sell
