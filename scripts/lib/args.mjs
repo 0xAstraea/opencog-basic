@@ -8,7 +8,12 @@ export function parseArgs(argv = process.argv.slice(2)) {
     if (eqIdx !== -1) {
       args[arg.slice(2, eqIdx)] = arg.slice(eqIdx + 1);
     } else {
-      args[arg.slice(2)] = argv[++i] || "";
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith("--")) {
+        args[arg.slice(2)] = true;
+      } else {
+        args[arg.slice(2)] = argv[++i];
+      }
     }
   }
   return args;
