@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+// Wallet setup for Precog prediction market scripts.
+//
+// Usage:
+//   node setup.mjs              # check wallet status, show address + balances
+//   node setup.mjs --generate   # generate a new wallet, save to ~/.openclaw/.env
+//
+// Env: PRECOG_RPC_URL (optional)
 import { existsSync, readFileSync, appendFileSync, mkdirSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
@@ -6,12 +13,14 @@ import { fileURLToPath } from "url";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { formatEther } from "viem";
 import * as client from "./lib/client.mjs";
+import { parseArgs } from "./lib/args.mjs";
 
 const ENV_DIR  = join(homedir(), ".openclaw");
 const ENV_FILE = join(ENV_DIR, ".env");
 
 export async function main(deps = {}) {
-  const { pub, read, tokenBalance, fromRaw, args } = { ...client, ...deps };
+  const { pub, read, tokenBalance, fromRaw } = { ...client, ...deps };
+  const _parseArgs = deps.parseArgs ?? parseArgs;
   const {
     existsSync:     _existsSync     = existsSync,
     readFileSync:   _readFileSync   = readFileSync,
@@ -22,7 +31,7 @@ export async function main(deps = {}) {
     getPrivateKey:  _getPrivateKey  = () => process.env.PRIVATE_KEY,
   } = deps;
 
-  const a = args();
+  const a = _parseArgs();
 
   // ── Generate ────────────────────────────────────────────────────────────────
   if ("generate" in a) {

@@ -1,15 +1,22 @@
 #!/usr/bin/env node
+// Quote the cost to buy or sell outcome shares in a Precog market.
+// Always run before buy or sell — show the output to the user and confirm.
+//
+// Usage:
+//   node quote.mjs --market <id> --outcome <n> --shares <amount>
+//
+// --outcome is 1-based (1 = first outcome, usually YES).
+// Env: PRECOG_RPC_URL (optional)
 import { fileURLToPath } from "url";
 import * as client from "./lib/client.mjs";
+import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, outcomes, pct, toFP64, fromFP64, args } = { ...client, ...deps };
-
-  const a = args();
-  if (!a.market || !a.outcome || !a.shares) {
-    console.error("Usage: node quote.mjs --market <id> --outcome <n> --shares <amount>");
-    process.exit(1);
-  }
+  const { read, outcomes, pct, toFP64, fromFP64 } = { ...client, ...deps };
+  const _parseArgs   = deps.parseArgs   ?? parseArgs;
+  const _requireArgs = deps.requireArgs ?? requireArgs;
+  const a = _parseArgs();
+  _requireArgs(a, ["market", "outcome", "shares"]);
 
   const marketId = BigInt(a.market);
   const outcome  = parseInt(a.outcome);

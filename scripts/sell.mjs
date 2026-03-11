@@ -1,15 +1,22 @@
 #!/usr/bin/env node
+// Sell outcome shares in a Precog prediction market.
+// Always run quote.mjs first to confirm return with the user.
+//
+// Usage:
+//   node sell.mjs --market <id> --outcome <n> --shares <amount> --min <usdc>
+//
+// --min is the minimum USDC to accept (e.g. 38 for $38). Slippage defaults to 1%.
+// Env: PRIVATE_KEY (required), PRECOG_RPC_URL (optional)
 import { fileURLToPath } from "url";
 import * as client from "./lib/client.mjs";
+import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, write, getWallet, outcomes, toFP64, toRaw, args } = { ...client, ...deps };
-
-  const a = args();
-  if (!a.market || !a.outcome || !a.shares || !a.min) {
-    console.error("Usage: node sell.mjs --market <id> --outcome <n> --shares <amount> --min <usdc>");
-    process.exit(1);
-  }
+  const { read, write, getWallet, outcomes, toFP64, toRaw } = { ...client, ...deps };
+  const _parseArgs   = deps.parseArgs   ?? parseArgs;
+  const _requireArgs = deps.requireArgs ?? requireArgs;
+  const a = _parseArgs();
+  _requireArgs(a, ["market", "outcome", "shares", "min"]);
 
   const marketId = BigInt(a.market);
   const outcome  = parseInt(a.outcome);

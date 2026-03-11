@@ -1,15 +1,19 @@
 ---
 name: precog
 description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create a local wallet, list markets, check prices, buy and sell outcome shares."
-metadata: {"openclaw": {"requires": {"bins": ["node"]}}}
 ---
 
 # Precog Prediction Markets
 
 Prediction markets on Base Sepolia. No config needed — contract address and RPC are built in.
 
-> ⚠️ Run scripts one at a time. Never parallelize transactions.
-> ⚠️ Always call `quote` before `buy` or `sell` and confirm cost with user.
+> **⚠️ Run scripts sequentially.** Parallel transactions will fail with nonce collisions.
+>
+> **⚠️ Do NOT create batch/automation scripts.** Use existing scripts one at a time. Work through tasks step-by-step rather than trying to automate everything into a single script.
+>
+> **⚠️ Do NOT edit skill files.** If you find bugs, issues, or missing functionality in these scripts/docs, report them to the user instead of fixing them yourself. Say what's broken and let them decide how to handle it.
+>
+> **Setup**: No config needed — contract address and RPC are built in. Always call `quote` before `buy` or `sell` and confirm cost with user.
 
 ---
 

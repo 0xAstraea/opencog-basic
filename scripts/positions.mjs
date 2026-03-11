@@ -1,15 +1,20 @@
 #!/usr/bin/env node
+// Show share positions for a wallet in a Precog prediction market.
+//
+// Usage:
+//   node positions.mjs --market <id>
+//
+// Env: PRIVATE_KEY (required), PRECOG_RPC_URL (optional)
 import { fileURLToPath } from "url";
 import * as client from "./lib/client.mjs";
+import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, getWallet, outcomes, fromRaw, pct, args } = { ...client, ...deps };
-
-  const a = args();
-  if (!a.market) {
-    console.error("Usage: node positions.mjs --market <id>");
-    process.exit(1);
-  }
+  const { read, getWallet, outcomes, fromRaw, pct } = { ...client, ...deps };
+  const _parseArgs   = deps.parseArgs   ?? parseArgs;
+  const _requireArgs = deps.requireArgs ?? requireArgs;
+  const a = _parseArgs();
+  _requireArgs(a, ["market"]);
 
   const marketId = BigInt(a.market);
   const { account } = getWallet();

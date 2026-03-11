@@ -145,14 +145,3 @@ export function date(ts) {
   return new Date(Number(ts) * 1000).toLocaleDateString("en-US",
     { month: "short", day: "numeric", year: "numeric" });
 }
-
-export function args(argv = process.argv.slice(2)) {
-  const out = {};
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i].startsWith("--")) {
-      const key = argv[i].slice(2);
-      out[key] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
-    }
-  }
-  return out;
-}

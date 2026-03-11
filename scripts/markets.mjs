@@ -1,11 +1,21 @@
 #!/usr/bin/env node
+// List all Precog prediction markets with current prices and status.
+//
+// Usage:
+//   node markets.mjs                    # list all markets
+//   node markets.mjs --limit <n>        # show only first n markets
+//   node markets.mjs --status active    # filter by status (active|ended)
+//
+// Env: PRECOG_RPC_URL (optional)
 import { fileURLToPath } from "url";
 import * as client from "./lib/client.mjs";
+import { parseArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, outcomes, pct, status, date, args } = { ...client, ...deps };
+  const { read, outcomes, pct, status, date } = { ...client, ...deps };
+  const _parseArgs = deps.parseArgs ?? parseArgs;
 
-  const a = args();
+  const a = _parseArgs();
   const total = await read("createdMarkets");
   if (total === 0n) { console.log("No markets found."); return []; }
 
