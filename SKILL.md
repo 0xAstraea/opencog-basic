@@ -54,6 +54,62 @@ Active Markets (2)
 
 ---
 
+## Market Detail
+
+When the user asks for more info / details about a specific market:
+
+```bash
+node {baseDir}/scripts/market.mjs --market <id>
+```
+
+Shows the title, category, status, end date, collateral, and all outcome probabilities ranked by price. After showing the output, **ask the user: "Would you like to see the resolution criteria?"** If they say yes:
+
+```bash
+node {baseDir}/scripts/market.mjs --market <id> --criteria
+```
+
+Example output (`--market 4`):
+```
+📊  Market 4  ·  AI / Leaderboard
+Which AI model will be the top performer at the end of March?
+🟢 Active  📅 Mar 31, 2026  💰 MATE
+
+🥇  [1] Claude    16.3%
+🥈  [2] Gemini    11.6%
+🥉  [3] Grok      11.6%
+    [4] ChatGPT   11.6%
+    [5] Ernie     11.6%
+    [6] GLM       11.6%
+    [7] Kimi      11.6%
+    [8] Qwen      11.6%
+    [9] Other     11.6%
+
+```
+
+Example output (`--market 4 --criteria`):
+```
+📊  Market 4  ·  AI / Leaderboard
+Which AI model will be the top performer at the end of March?
+🟢 Active  📅 Mar 31, 2026  💰 MATE
+
+🥇  [1] Claude    16.3%
+🥈  [2] Gemini    11.6%
+🥉  [3] Grok      11.6%
+    [4] ChatGPT   11.6%
+    [5] Ernie     11.6%
+    [6] GLM       11.6%
+    [7] Kimi      11.6%
+    [8] Qwen      11.6%
+    [9] Other     11.6%
+
+📝  Resolution Criteria
+This market will resolve based on the Text Arena AI Competition leaderboard
+rankings at arena.ai as of March 31, 2026, 23:59:59 UTC.
+
+```
+
+---
+
 ## Quote a Trade
 
 **Always run before buy or sell.** Show the full output verbatim in a fenced code block. Ask the user to confirm before proceeding.
@@ -126,6 +182,19 @@ node {baseDir}/scripts/sell.mjs --market <id> --outcome <n> --shares <amount> --
 
 ```bash
 node {baseDir}/scripts/positions.mjs --market <id>
+```
+
+Example output:
+```
+💼  Market 4
+Which AI model will be the top performer at the end of March?
+
+👛  0x77Ffa97c2dcDA0FF6c9393281993962FA633d9E1
+💵  Net cost  19.03 MATE  ·  📥 8 buys  📤 7 sells
+
+🎯  Shares held
+🥇  [1] Claude   135 shares  ·  16.3%
+
 ```
 
 ---

@@ -30,31 +30,42 @@ export async function main(deps = {}) {
 
   const netCost = deposited - withdrawn - redeemed;
 
-  console.log(`\nPositions — Market ${a.market}: ${question}`);
-  console.log(`Wallet: ${account.address}`);
-  console.log(`${"─".repeat(55)}`);
-  console.log(`  Net cost : ${fromRaw(netCost < 0n ? 0n : netCost, dec)} ${colSymbol}`);
-  console.log(`  Buys     : ${totalBuys}   Sells: ${totalSells}`);
-  console.log(`\n  Shares held:`);
+  let buyPrices = null;
+  try {
+    [buyPrices] = await read("marketPrices", [marketId]);
+  } catch {}
 
+  // ── Header ────────────────────────────────────────────────────────────────
+  console.log(`\n💼  Market ${a.market}`);
+  console.log(`${question}\n`);
+  console.log(`👛  ${account.address}`);
+  console.log(`💵  Net cost  ${fromRaw(netCost < 0n ? 0n : netCost, dec)} ${colSymbol}  ·  📥 ${totalBuys} buys  📤 ${totalSells} sells\n`);
+
+  // ── Shares ────────────────────────────────────────────────────────────────
+  const medals = ["🥇", "🥈", "🥉"];
   const held = [];
+
   for (let i = 1; i < balances.length; i++) {
     if (balances[i] === 0n) continue;
     const label       = outs[i - 1] ?? `Outcome ${i}`;
-    const sharesHuman = (Number(balances[i]) / 1e18).toFixed(4);
-
-    let currentPrice = "";
-    try {
-      const [buyPrices] = await read("marketPrices", [marketId]);
-      currentPrice = `  (${pct(buyPrices[i])}% implied)`;
-    } catch {}
-
-    console.log(`    [${i}] ${label}: ${sharesHuman} shares${currentPrice}`);
-    held.push({ outcome: i, label, shares: sharesHuman });
+    const sharesHuman = parseFloat((Number(balances[i]) / 1e18).toFixed(4));
+    const priceStr    = buyPrices ? `  ·  ${pct(buyPrices[i])}%` : "";
+    held.push({ outcome: i, label, shares: sharesHuman, priceStr });
   }
 
-  if (held.length === 0) console.log("    No shares held in this market.");
-  console.log("");
+  if (held.length === 0) {
+    console.log("🎯  No shares held in this market.\n");
+  } else {
+    console.log("🎯  Shares held");
+    const maxLabel = Math.max(...held.map(h => h.label.length));
+    held.forEach((h, idx) => {
+      const icon   = medals[idx] ?? "   ";
+      const padded = h.label.padEnd(maxLabel);
+      console.log(`${icon}  [${h.outcome}] ${padded}   ${h.shares} shares${h.priceStr}`);
+    });
+    console.log("");
+  }
+
   return { netCost, totalBuys, totalSells, held };
 }
 
