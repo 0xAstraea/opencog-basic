@@ -69,19 +69,18 @@ Active Markets (2)
 
 Always run before buy or sell. After showing the full output, ask the user to confirm.
 
-Quote by number of shares:
-```bash
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount> [--buy | --sell]
-```
+### Which flag to use
 
-Quote by budget (how many shares can I get for $X?):
-```bash
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc> [--buy | --sell]
-```
+| User says | Flag to use | Example |
+|---|---|---|
+| "buy N shares" | `--shares N` | `--shares 50` |
+| "spend $X" / "for $X" / "budget $X" | `--cost X` | `--cost 50` |
+| "reach X%" / "move to X%" / "push to X%" / "target X%" | `--price 0.X` | `--price 0.20` |
 
-Quote by target price (how many shares to move probability to X?):
 ```bash
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0.0-1.0> [--buy | --sell]
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount> --buy
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc>   --buy
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0-1>   --buy
 ```
 
 `--outcome` is 1-based (1 = first outcome, usually YES).
