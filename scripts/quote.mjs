@@ -12,6 +12,7 @@
 //   User says "spend $X" / "for $X" / "budget $X" → --cost X
 //   User says "reach X%" / "move to X%" /
 //             "push to X%" / "target X%"           → --price 0.X   ← DO NOT guess shares manually
+//   User says "use all my balance" / "all in"      → --all         ← reads wallet balance automatically
 //
 // --outcome is 1-based (1 = first outcome, usually YES).
 // --buy / --sell show only that side. Omit both to show buy and sell.
@@ -22,14 +23,14 @@ import { parseArgs, requireArgs } from "./lib/args.mjs";
 import { LSLMSR, marketSharesFromCost, marketPriceAfterTrade, getFuturePriceAfterTrade } from "./lib/helper.mjs";
 
 export async function main(deps = {}) {
-  const { read, outcomes, pct, toFP64, fromFP64 } = { ...client, ...deps };
+  const { read, outcomes, pct, toFP64, fromFP64, fromRaw, tokenBalance, getWallet } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   const a = _parseArgs();
   _requireArgs(a, ["market", "outcome"]);
 
-  if (!("shares" in a) && !("cost" in a) && !("price" in a)) {
-    throw new Error("Provide one of: --shares <n>, --cost <usdc>, --price <0.0-1.0>");
+  if (!("shares" in a) && !("cost" in a) && !("price" in a) && !("all" in a)) {
+    throw new Error("Provide one of: --shares <n>, --cost <usdc>, --price <0.0-1.0>, --all");
   }
 
   const showBuy  = !("sell" in a);
@@ -57,7 +58,14 @@ export async function main(deps = {}) {
 
   let sharesNum;
 
-  if ("cost" in a) {
+  if ("all" in a) {
+    const { account } = getWallet();
+    const [colToken, , , colDecimals] = await read("marketCollateralInfo", [marketId]);
+    const balRaw  = await tokenBalance(colToken, account.address);
+    const balance = Number(balRaw) / 10 ** Number(colDecimals);
+    console.log(`  💰  Wallet balance : ${balance.toFixed(4)} ${colSymbol}`);
+    sharesNum = Math.floor(marketSharesFromCost(sharesArr, alpha, outcome, balance));
+  } else if ("cost" in a) {
     sharesNum = Math.floor(marketSharesFromCost(sharesArr, alpha, outcome, parseFloat(a.cost)));
   } else if ("price" in a) {
     const outcomesBalances = {};

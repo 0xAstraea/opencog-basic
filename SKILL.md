@@ -65,13 +65,15 @@ Active Markets (2)
 | "buy N shares" | `--shares N` | `--shares 50` |
 | "spend $X" / "for $X" / "budget $X" | `--cost X` | `--cost 50` |
 | "reach X%" / "move to X%" / "push to X%" / "target X%" | `--price 0.X` | `--price 0.25` |
+| "use all my balance" / "all in" / "spend everything" | `--all` | `--all` |
 
-**Do NOT guess share counts manually when the user gives a percentage target. Use `--price`.**
+**Do NOT guess share counts manually. Use the correct flag — the script computes the exact answer.**
 
 ```bash
 node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount> --buy
 node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc>     --buy
 node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0.0-1.0> --buy
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --all             --buy
 ```
 
 - `--outcome` is 1-based (1 = first outcome, usually YES)
@@ -133,6 +135,12 @@ node {baseDir}/scripts/positions.mjs --market <id>
 ```
 User: "What markets are open?"
 → node markets.mjs
+
+User: "Use all my MATE to buy Claude on market 4"
+→ node quote.mjs --market 4 --outcome 1 --all --buy
+→ Paste full output verbatim. Ask: "Confirm buy?"
+→ Wait for user to confirm
+→ node buy.mjs --market 4 --outcome 1 --shares <n from quote> --max <suggested-max>
 
 User: "Buy Claude for $50 on market 4"
 → node quote.mjs --market 4 --outcome 1 --cost 50 --buy
