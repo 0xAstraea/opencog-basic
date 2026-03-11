@@ -13,7 +13,9 @@ Prediction markets on Base Sepolia. No config needed — contract address and RP
 >
 > **⚠️ Do NOT edit skill files.** If you find bugs, issues, or missing functionality in these scripts/docs, report them to the user instead of fixing them yourself. Say what's broken and let them decide how to handle it.
 >
-> **Setup**: No config needed — contract address and RPC are built in. Always call `quote` before `buy` or `sell` and confirm cost with user.
+> **⚠️ ALWAYS show raw script output verbatim in a fenced code block.** Never reformat, summarize, shorten, or convert to bullet points or tables. The user must see exactly what the script printed.
+>
+> **⚠️ ALWAYS run `quote` before `buy` or `sell`. Show the full quote output to the user and wait for explicit confirmation before executing the trade. NEVER skip this step, even if the user seems certain.**
 
 ---
 
@@ -61,7 +63,7 @@ Active Markets (2)
 
 ## Quote a Trade
 
-Always run before buy or sell. Show the output to the user and confirm before proceeding.
+Always run before buy or sell. Show the **exact raw output** in a fenced code block — never summarize or reformat it. Then ask the user to confirm.
 
 Quote by number of shares:
 ```bash
@@ -118,19 +120,23 @@ Example output (sell only — `--sell`):
 
 ## Buy
 
+> **⚠️ Run `quote --buy` first. Show the output to the user. Do NOT proceed until the user confirms.**
+
 ```bash
 node {baseDir}/scripts/buy.mjs --market <id> --outcome <n> --shares <amount> --max <usdc>
 ```
-`--max` is the maximum USDC to spend (e.g. `40` for $40). USDC approval is handled automatically.
+`--max` is the maximum USDC to spend — use the `Suggested --max` value from the quote output.
 
 ---
 
 ## Sell
 
+> **⚠️ Run `quote --sell` first. Show the output to the user. Do NOT proceed until the user confirms.**
+
 ```bash
 node {baseDir}/scripts/sell.mjs --market <id> --outcome <n> --shares <amount> --min <usdc>
 ```
-`--min` is the minimum USDC to receive.
+`--min` is the minimum USDC to receive — use the `Suggested --min` value from the quote output.
 
 ---
 
@@ -149,9 +155,17 @@ User: "What markets are open?"
 → node markets.mjs
 
 User: "I want to buy YES on market 2 for $50"
-→ node quote.mjs --market 2 --outcome 1 --shares 60
-→ Show quote to user, ask to confirm
-→ node buy.mjs --market 2 --outcome 1 --shares 60 --max 50
+→ node quote.mjs --market 2 --outcome 1 --cost 50 --buy
+→ Show FULL quote output verbatim. Ask: "Confirm buy?"
+→ WAIT for user to say yes/confirm
+→ node buy.mjs --market 2 --outcome 1 --shares <n> --max <suggested-max>
+
+User: "Sell my YES shares on market 2"
+→ node positions.mjs --market 2          (find share count)
+→ node quote.mjs --market 2 --outcome 1 --shares <n> --sell
+→ Show FULL quote output verbatim. Ask: "Confirm sell?"
+→ WAIT for user to say yes/confirm
+→ node sell.mjs --market 2 --outcome 1 --shares <n> --min <suggested-min>
 
 User: "What's my position?"
 → node positions.mjs --market 2
