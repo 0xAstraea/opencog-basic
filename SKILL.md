@@ -1,6 +1,15 @@
 ---
 name: precog
 description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create a local wallet, list markets, check prices, buy and sell outcome shares. IMPORTANT: always paste script output verbatim inside a fenced code block — never summarize, shorten, or reformat it."
+metadata:
+  openclaw:
+    requires:
+      env:
+        PRIVATE_KEY: "Secp256k1 private key (0x-prefixed) for signing transactions. Created locally by running setup.mjs --generate and saved to ~/.openclaw/.env. Never transmitted over the network. Optional if you set it manually before first use."
+        PRECOG_RPC_URL: "optional — override the default public Base Sepolia RPC endpoints (https://sepolia.base.org and fallbacks)."
+      bins:
+        - node
+        - npm
 ---
 
 # Precog Prediction Markets
@@ -18,6 +27,15 @@ Precog is a fully onchain prediction market protocol on Base Sepolia (mainnet on
 For full protocol documentation see `PRECOG.md` — it covers prediction markets 101, the LS-LMSR pricing curve, resolution via Reality.eth + Kleros, LP mechanics, MATE markets, and more.
 
 No config needed — contract address and RPC are built in.
+
+## Security and local state
+
+- **`~/.openclaw/.env`** — created by `setup.mjs --generate`. Stores `PRIVATE_KEY` in plaintext. Treat it like a wallet key file: restrict permissions (`chmod 600`) and back it up. Losing it means losing access to any funds in that wallet.
+- **No key is ever transmitted.** Transactions are signed locally; only the signed transaction is broadcast to the RPC.
+- **Use a throwaway wallet.** The MATE markets use a practice token with no real value — ideal for testing. Do not load a high-value key into this skill.
+- **Custom RPC risk.** If you set `PRECOG_RPC_URL`, use only a trusted endpoint. An untrusted RPC can observe signed transaction contents (but cannot extract your private key from them).
+
+---
 
 > **⚠️ Run scripts sequentially.** Parallel transactions will fail with nonce collisions.
 >
