@@ -24,7 +24,7 @@ Precog is a fully onchain prediction market protocol on Base Sepolia (mainnet on
 - Get detailed market info including category and resolution criteria
 - Quote, buy, and sell outcome shares using your local wallet
 - Check your positions (shares held, net cost, trade history)
-- Create new prediction markets (automated form submission via headless browser)
+- Create new prediction markets (automated via browser tool — no separate browser install needed)
 
 For full protocol documentation see `PRECOG.md` — it covers prediction markets 101, the LS-LMSR pricing curve, resolution via Reality.eth + Kleros, LP mechanics, MATE markets, and more.
 
@@ -335,9 +335,10 @@ User: "Create a market about X" / "Can you create a market for Y?"
      📧 you@email.com (optional — omit if not provided)
      Shall I go ahead?"
 → Also ask: "Would you like to receive email notifications about this market? If so, share your email." (optional — skip if user declines)
-→ On confirmation: run launchpad.mjs with the gathered fields (internal — never shown to user)
-→ Show the script output verbatim in a fenced code block
-→ After 🎉 Market creation submitted!, tell the user in plain language:
+→ On confirmation: follow the browser-tool flow in the "Create a Market" section (internal — never shown to user)
+→ Never show the user any browser steps, evaluate code, step numbers, or technical details
+→ If any step fails: say "I wasn't able to create the market right now — something went wrong on my end. Would you like to try again?"
+→ After successful submission, tell the user:
     "✅ Market created and submitted for review!
      Next steps:
      1️⃣ Fund it with liquidity at https://core.precog.markets/84532/launchpad
@@ -353,77 +354,97 @@ User asks about a topic/event and no matching market exists
 
 ## Create a Market
 
-Markets are created via `launchpad.mjs`, which logs in to `core.precog.markets` automatically and submits the creation form using a headless browser.
+Market creation uses the agent's built-in `browser` tool — no separate browser install needed on the server. The entire flow is silent; the user only sees the final confirmation.
 
 **Prerequisites**
-- The wallet must have at least **3,000 Precog Points** (creator status). If restricted, the script reports `⛔ Market Creation Restricted` and stops.
-- A Chromium-based browser must be available on the machine (Chrome, Brave, Chromium, or Playwright's bundled browser). The script detects and connects automatically — no manual setup needed.
+- The wallet must have at least **3,000 Precog Points** (creator status). If restricted, stop and tell the user creation is restricted on this wallet.
 
-**Command**
-```bash
-node {baseDir}/scripts/launchpad.mjs \
-  --question    "Will X happen?" \
-  --description "Resolves YES if..." \
-  --category    "SPORTS" \
-  --outcomes    "YES,NO" \
-  --start       "2026-04-01" \
-  --end         "2026-06-30" \
-  --token       "0x…"
+**Behavior rules**
+- Never show the user any browser evaluate code, step numbers, or internal details.
+- If any step fails, say "I wasn't able to create the market right now — something went wrong on my end. Would you like to try again?"
+- After success, always remind the user: fund at the launchpad URL + staff approval required.
+
+**Agent flow (internal — never expose to user)**
+
 ```
+Step 1 — Get wallet address
+  node {baseDir}/scripts/signer.mjs --address  → ADDR
 
-**Flags**
+Step 2 — Navigate to create-market page
+  browser navigate https://core.precog.markets/84532/create-market
+  browser wait --load networkidle
 
-| Flag | Required | Notes |
-|---|---|---|
-| `--question` | yes | The market title / question |
-| `--description` | yes | Resolution criteria — be precise |
-| `--category` | yes | e.g. `SPORTS`, `POLITICS`, `CRYPTO`, `AI` |
-| `--outcomes` | yes | Comma-separated, e.g. `"YES,NO"` or `"TeamA,TeamB,Draw"` |
-| `--start` | yes | Trading start date ISO: `2026-04-01` |
-| `--end` | yes | Trading end / resolution date ISO: `2026-06-30` |
-| `--token` | yes | Collateral token address. MATE (practice) = `0xC139C86de76DF41c041A30853C3958427fA7CEbD` |
-| `--image` | no | IPFS or HTTPS image URL |
-| `--email` | no | Creator contact email |
-| `--headless` | no | Run without a visible browser window |
+Step 3 — Inject ethereum provider (substitute ADDR into the JS below)
+  browser evaluate --fn "<injection JS with ADDR substituted>"
 
-**What the script does**
-1. Logs in via injected MetaMask provider (signs SIWE message automatically — no user action needed)
-2. Fills all form fields
-3. Clicks Review Market → Create Market → Confirm Creation
-4. Prints `🎉 Market creation submitted!` on success
+  Injection JS:
+  (function(){
+    var a="WALLET_ADDRESS";
+    window.__signMsg=null; window.__signResolve=null;
+    window.ethereum={
+      isMetaMask:true, chainId:"0x14a34", networkVersion:"84532", selectedAddress:a,
+      request:function(r){
+        var m=r.method,p=r.params;
+        if(m==="eth_requestAccounts"||m==="eth_accounts") return Promise.resolve([a]);
+        if(m==="eth_chainId") return Promise.resolve("0x14a34");
+        if(m==="net_version") return Promise.resolve("84532");
+        if(m==="wallet_switchEthereumChain"||m==="wallet_addEthereumChain") return Promise.resolve(null);
+        if(m==="personal_sign"){
+          window.__signMsg=p[0];
+          return new Promise(function(res){window.__signResolve=res;});
+        }
+        return Promise.reject(new Error("unsupported:"+m));
+      },
+      on:function(){}, removeListener:function(){}
+    };
+    window.dispatchEvent(new Event("ethereum#initialized"));
+  })()
+
+Step 4 — Click login
+  browser snapshot --interactive
+  → click Connect Wallet / Log in button
+  → click MetaMask in the modal
+
+Step 5 — Sign SIWE message
+  Poll: browser evaluate --fn "window.__signMsg"  (repeat every 1 s, up to 30 s, until non-null)
+  node {baseDir}/scripts/signer.mjs <hex-msg>  → SIG
+  browser evaluate --fn "window.__signResolve('<SIG>')"
+
+Step 6 — Wait for auth
+  browser wait --fn "!Array.from(document.querySelectorAll('span')).some(s=>s.textContent==='Connect Your Wallet')" --timeout-ms 30000
+
+Step 7 — Check restriction
+  browser evaluate --fn "Array.from(document.querySelectorAll('span')).some(s=>s.textContent==='Market Creation Restricted')"
+  → if true: tell user "creation is restricted on this wallet" and stop
+
+Step 8 — Fill form
+  browser snapshot --interactive  → get element refs
+  browser type <ref-question>     "{question}"
+  browser type <ref-description>  "{description}"
+  browser type <ref-category>     "{category}"
+  → collateral token: click the token select button → click "Custom Token" → type token address
+  → outcomes: for each outcome, type in outcome input → click "Add"
+  → dates: click date picker trigger, navigate months with prev/next, click target day cell
+  → email (if provided): type in creator email field
+
+Step 9 — Submit
+  browser click <ref-review-market>
+  browser wait --text "Create Market"
+  browser click <ref-create-market>
+  browser wait --text "Confirm Creation"
+  browser click <ref-confirm-creation>
+  browser wait --text "Market creation submitted"
+```
 
 **After submission — two more steps required**
 
-> ⚠️ The market is NOT live yet after the script finishes.
+> ⚠️ The market is NOT live yet after submission.
 
 1. **Fund the market** — the creator must provide initial liquidity at:
    **https://core.precog.markets/84532/launchpad**
    Without funding the market has no liquidity and cannot be traded.
 
 2. **Staff approval** — the Precog team reviews and approves markets before they go live. This is not instant; tell the user to expect a delay.
-
-**Example output**
-```
-Wallet: 0x01BE…
-Navigating to https://core.precog.markets/84532/create-market …
-Session established.
-
-📝  Filling market creation form …
-  ✏️   question: Will Argentina beat Brazil?
-  ✏️   description: Resolves YES if Argentina wins.
-  ✏️   category: SPORTS
-  🪙  token options: MATE, DACC, Custom Token
-  🪙  custom token address: 0x…
-  ➕  outcome: YES
-  ➕  outcome: NO
-  📅  start date set: 2026-06-01
-  📅  end date set: 2026-07-15
-  🔍  Clicked Review Market
-  🚀  Clicked Create Market
-  ✅  Clicked Confirm Creation
-
-🎉  Market creation submitted!
-```
 
 ---
 
