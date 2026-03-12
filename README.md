@@ -14,7 +14,7 @@ This skill generates and stores a private key on your machine.
 
 ```bash
 cd ~/.openclaw/skills
-git clone <repo-url> precog
+git clone https://github.com/0xAstraea/opencog-basic precog
 npm install
 ```
 
