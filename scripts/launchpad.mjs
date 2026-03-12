@@ -40,7 +40,8 @@ if (existsSync(ENV_FILE)) {
 //     --token "0xABC…"         # custom ERC-20 collateral token address
 
 const args     = process.argv.slice(2);
-const headless = args.includes("--headless");
+// Auto-headless on Linux servers where no display is available
+const headless = args.includes("--headless") || (process.platform === "linux" && !process.env.DISPLAY);
 const debug    = args.includes("--debug");
 
 function getArg(name) {

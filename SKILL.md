@@ -45,6 +45,8 @@ No config needed — contract address and RPC are built in.
 >
 > **⚠️ Do NOT edit skill files.** Report bugs or missing features to the user instead of fixing them.
 >
+> **⚠️ Never expose implementation details to the user.** Do not mention script names (`launchpad.mjs`, `markets.mjs`, etc.), CLI commands, flags, or error stack traces. If something fails, say "something went wrong" and describe what to try next — never show the raw command or suggest the user run it themselves.
+>
 > **⚠️ Always show script output verbatim in a fenced code block.** Never reformat, summarize, or convert to bullet points or tables. The user must see exactly what the script printed — every emoji, every line.
 >
 > **⚠️ Always run `quote` before `buy` or `sell`.** Show the full quote output to the user and wait for explicit confirmation before executing the trade.
@@ -249,17 +251,16 @@ Which AI model will be the top performer at the end of March?
 
 ## Responding to "what can I do?" questions
 
-When the user asks what they can do, what Precog is, or how to get started — answer in plain prose with emojis, no tables. Mention their current positions if you know them. Example:
+When the user asks what they can do, what Precog is, or how to get started — answer in plain prose with emojis, no tables. **Never mention script names or CLI commands.** Mention their current positions if you know them. Example:
 
 > With Precog you can trade on the probability of real-world outcomes using MATE (a safe practice token — no real money).
 >
 > Here's what you can do:
 >
-> 🗂️ **List markets** — see what's open and the leading outcome for each
-> 🔍 **Market detail** — outcomes, probabilities, category, and resolution criteria for a specific market
-> 💸 **Trade** — quote first, then buy or sell outcome shares (by share count, budget, or target probability)
-> 📋 **Positions** — see your shares, net cost, and trade history
-> 🏗️ **Create markets** — propose a new prediction market on any topic; I'll fill the form and submit it automatically (wallet needs 3,000 Points for creator status)
+> 🗂️ **Browse markets** — see what's open, leading outcomes, categories, and resolution criteria
+> 💸 **Trade** — buy or sell outcome shares by amount, budget, or target probability
+> 📋 **Check positions** — see your shares, net cost, and trade history
+> 🏗️ **Create a market** — I can set up a new prediction market on any topic for you
 >
 > You currently hold 100 Claude shares on Market 4. Want to check the latest prices or make a move?
 
@@ -315,18 +316,32 @@ User: "Sell my Claude shares on market 4"
 → After trade: suggest checking positions or remaining balance
 
 User: "Create a market about X" / "Can you create a market for Y?"
-→ Gather any missing required fields from the user:
-    question, description, category, outcomes (comma-separated), start date, end date, token address
-→ Present all fields to the user and ask for confirmation before running
-→ node launchpad.mjs --question "..." --description "..." --category "..." \
-      --outcomes "..." --start "YYYY-MM-DD" --end "YYYY-MM-DD" --token "0x..."
-→ Show full output verbatim in a fenced code block
-→ After success, remind the user of the two required next steps:
-    1. Fund the market at https://core.precog.markets/84532/launchpad
-    2. Await staff approval before the market goes live
+→ DO NOT mention scripts, commands, or technical details to the user
+→ Gather any missing required fields conversationally:
+    question, resolution criteria, category, outcomes, start date, end date, collateral token
+→ Propose sensible defaults based on the topic (e.g. YES/NO for binary, team names for a tournament)
+→ Present a summary to the user and ask for confirmation, e.g.:
+    "Here's what I'll create:
+     ❓ Will Argentina win the 2026 FIFA World Cup?
+     📝 Resolves YES if Argentina is crowned champion on July 19, 2026.
+     🏷️ SPORTS
+     🔘 Outcomes: YES / NO
+     📅 Jun 1 – Jul 19, 2026
+     🪙 MATE
+     📧 you@email.com (optional — omit if not provided)
+     Shall I go ahead?"
+→ Also ask: "Would you like to receive email notifications about this market? If so, share your email." (optional — skip if user declines)
+→ On confirmation: run launchpad.mjs with the gathered fields (internal — never shown to user)
+→ Show the script output verbatim in a fenced code block
+→ After 🎉 Market creation submitted!, tell the user in plain language:
+    "✅ Market created and submitted for review!
+     Next steps:
+     1️⃣ Fund it with liquidity at https://core.precog.markets/84532/launchpad
+     2️⃣ The Precog team will review and approve it before it goes live — this may take some time."
 
-User asks about a topic/event and no matching market exists in markets.mjs output
-→ After listing markets, add: "No market exists for [topic] yet. Would you like me to create one?"
+User asks about a topic/event and no matching market exists
+→ After listing markets say naturally (no script names):
+    "There's no market for [topic] yet. Want me to create one? 🏗️"
 → If yes: gather fields and proceed as above
 ```
 
@@ -338,7 +353,11 @@ Markets are created via `launchpad.mjs`, which logs in to `core.precog.markets` 
 
 **Prerequisites**
 - The wallet must have at least **3,000 Precog Points** (creator status). If restricted, the script reports `⛔ Market Creation Restricted` and stops.
-- Chromium must be installed once: `npx playwright install chromium`
+- Chromium must be installed once:
+  ```bash
+  npx playwright install chromium          # download browser binaries
+  npx playwright install-deps chromium     # Linux/Ubuntu only: install system libraries
+  ```
 
 **Command**
 ```bash
