@@ -11,6 +11,7 @@
 import { readFileSync, existsSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
+import { execSync } from "child_process";
 import { chromium } from "playwright";
 import { createWalletClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
@@ -82,7 +83,19 @@ console.log(`Wallet: ${ADDRESS}`);
 
 // ── Browser ───────────────────────────────────────────────────────────────────
 
-const browser = await chromium.launch({ headless });
+// Auto-install system dependencies if Chromium fails to launch (Linux servers)
+let browser;
+try {
+  browser = await chromium.launch({ headless });
+} catch (e) {
+  if (process.platform === "linux" && e.message.includes("missing")) {
+    console.log("Browser dependencies missing — installing now …");
+    execSync("npx playwright install-deps chromium", { stdio: "inherit" });
+    browser = await chromium.launch({ headless });
+  } else {
+    throw e;
+  }
+}
 const context = await browser.newContext();
 
 // Inject window.ethereum into every page/popup that opens in this context

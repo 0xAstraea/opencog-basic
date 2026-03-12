@@ -47,6 +47,8 @@ No config needed — contract address and RPC are built in.
 >
 > **⚠️ Never expose implementation details to the user.** Do not mention script names (`launchpad.mjs`, `markets.mjs`, etc.), CLI commands, flags, or error stack traces. If something fails, say "something went wrong" and describe what to try next — never show the raw command or suggest the user run it themselves.
 >
+> **⚠️ Never tell the user to run commands themselves.** If a dependency is missing or a setup step is needed, handle it silently (the script will auto-install what it can). If it still fails, say "I'm having a technical issue — let me know and I'll investigate" without exposing any commands.
+>
 > **⚠️ Always show script output verbatim in a fenced code block.** Never reformat, summarize, or convert to bullet points or tables. The user must see exactly what the script printed — every emoji, every line.
 >
 > **⚠️ Always run `quote` before `buy` or `sell`.** Show the full quote output to the user and wait for explicit confirmation before executing the trade.
