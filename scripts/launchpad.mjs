@@ -11,7 +11,7 @@
 import { readFileSync, existsSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execSync, execFileSync, spawn } from "child_process";
 import { chromium } from "playwright";
 import { createWalletClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
@@ -82,23 +82,106 @@ const ADDRESS = account.address;
 console.log(`Wallet: ${ADDRESS}`);
 
 // ── Browser ───────────────────────────────────────────────────────────────────
+//
+// Resolution order:
+//   1. OpenClaw managed browser  (openclaw browser start → connectOverCDP)
+//      Works when Google Chrome is installed on the server.
+//   2. System browser self-start (spawn chromium/chrome with CDP port)
+//      Works with snap Chromium on Ubuntu and any other installed browser.
+//   3. Playwright bundled Chromium (chromium.launch)
+//      Works on Windows/macOS dev machines.
 
-// --no-sandbox + --disable-dev-shm-usage let Chromium run on Linux servers
-// without any system package installs (works in Docker, cloud VMs, etc.)
-const CHROME_ARGS = process.platform === "linux"
-  ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
-  : [];
+const CDP_PORT    = 18800;
+const CDP_URL     = `http://127.0.0.1:${CDP_PORT}`;
+const USER_DATA   = join(homedir(), ".openclaw", "browser", "openclaw", "user-data");
+
+// Find the first executable Chromium-based binary on this system.
+function findSystemBrowser() {
+  const candidates = [
+    "google-chrome-stable", "google-chrome",
+    "chromium-browser", "chromium",
+    "/usr/bin/google-chrome-stable", "/usr/bin/google-chrome",
+    "/usr/bin/chromium-browser", "/usr/bin/chromium",
+    "/snap/bin/chromium",
+  ];
+  for (const bin of candidates) {
+    try {
+      const resolved = bin.startsWith("/") ? bin
+        : execSync(`which ${bin} 2>/dev/null`, { stdio: "pipe" }).toString().trim();
+      if (resolved && existsSync(resolved)) return resolved;
+    } catch { /* not found */ }
+  }
+  return null;
+}
+
+// Spawn the system browser on the CDP port, return the child process.
+function spawnSystemBrowser(binPath) {
+  return spawn(binPath, [
+    "--headless=new", "--no-sandbox", "--disable-gpu",
+    "--disable-dev-shm-usage",
+    `--remote-debugging-port=${CDP_PORT}`,
+    `--user-data-dir=${USER_DATA}`,
+    "about:blank",
+  ], { detached: false, stdio: "ignore" });
+}
+
+// Wait up to `ms` for the CDP endpoint to respond.
+async function waitForCDP(ms = 5000) {
+  const { default: http } = await import("http");
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 300));
+    const ok = await new Promise(resolve => {
+      const req = http.get(`${CDP_URL}/json/version`, res => {
+        resolve(res.statusCode === 200);
+        res.resume();
+      });
+      req.on("error", () => resolve(false));
+      req.setTimeout(500, () => { req.destroy(); resolve(false); });
+    });
+    if (ok) return;
+  }
+  throw new Error(`CDP on ${CDP_URL} did not respond within ${ms}ms`);
+}
 
 let browser;
+let spawnedProc = null;  // child process we started ourselves (needs cleanup)
+
+// ── Tier 1: OpenClaw managed browser ─────────────────────────────────────────
 try {
-  browser = await chromium.launch({ headless, args: CHROME_ARGS });
-} catch (e) {
-  if (/Executable doesn't exist|browserType\.launch|executable/i.test(e.message)) {
-    console.log("Chromium not found — installing (this runs once) …");
-    execSync("npx playwright install chromium", { stdio: "inherit" });
+  execSync("openclaw browser --browser-profile openclaw start", { stdio: "pipe" });
+  browser = await chromium.connectOverCDP(CDP_URL);
+  console.log("Connected to OpenClaw browser.");
+} catch { /* fall through */ }
+
+// ── Tier 2: Spawn system browser on the CDP port ─────────────────────────────
+if (!browser) {
+  const bin = findSystemBrowser();
+  if (bin) {
+    try {
+      spawnedProc = spawnSystemBrowser(bin);
+      await waitForCDP(8000);
+      browser = await chromium.connectOverCDP(CDP_URL);
+      console.log(`Connected to system browser (${bin}).`);
+    } catch { spawnedProc?.kill(); spawnedProc = null; }
+  }
+}
+
+// ── Tier 3: Playwright bundled Chromium ──────────────────────────────────────
+if (!browser) {
+  const CHROME_ARGS = process.platform === "linux"
+    ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+    : [];
+  try {
     browser = await chromium.launch({ headless, args: CHROME_ARGS });
-  } else {
-    throw e;
+  } catch (e) {
+    if (/Executable doesn't exist|browserType\.launch|executable/i.test(e.message)) {
+      console.log("Chromium not found — installing (this runs once) …");
+      execSync("npx playwright install chromium", { stdio: "inherit" });
+      browser = await chromium.launch({ headless, args: CHROME_ARGS });
+    } else {
+      throw e;
+    }
   }
 }
 const context = await browser.newContext();
@@ -547,4 +630,5 @@ if (debug || createMode) {
   console.log(createMode ? "Browser open — review form then Ctrl-C." : "--debug flag set — browser staying open. Press Ctrl-C to exit.");
 } else {
   await browser.close();
+  spawnedProc?.kill();
 }
