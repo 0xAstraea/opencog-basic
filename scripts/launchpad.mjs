@@ -167,7 +167,25 @@ if (!browser) {
   }
 }
 
-// ── Tier 3: Playwright bundled Chromium ──────────────────────────────────────
+// ── Tier 3: @sparticuz/chromium — self-contained, no system libs needed ───────
+// Bundles libatk, libgtk, libgbm, etc. alongside the binary.
+// Pure npm — works on minimal Ubuntu servers with zero apt installs.
+// First use downloads ~60 MB from GitHub; cached to ~/.openclaw/chromium.
+if (!browser) {
+  try {
+    const { default: sparticuz } = await import("@sparticuz/chromium");
+    const cacheDir       = join(homedir(), ".openclaw", "chromium");
+    const executablePath = await sparticuz.executablePath(cacheDir);
+    browser = await chromium.launch({
+      args:           [...sparticuz.args, "--disable-dev-shm-usage"],
+      executablePath,
+      headless:       true,
+    });
+    console.log("Using bundled Chromium.");
+  } catch { /* fall through to Tier 4 */ }
+}
+
+// ── Tier 4: Playwright bundled Chromium (local dev / Windows / macOS) ─────────
 if (!browser) {
   const CHROME_ARGS = process.platform === "linux"
     ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
@@ -176,8 +194,7 @@ if (!browser) {
     browser = await chromium.launch({ headless, args: CHROME_ARGS });
   } catch (e) {
     if (/Executable doesn't exist|browserType\.launch|executable/i.test(e.message)) {
-      console.log("Chromium not found — installing (this runs once) …");
-      execSync("npx playwright install chromium", { stdio: "inherit" });
+      execSync("npx playwright install chromium", { stdio: "pipe" });
       browser = await chromium.launch({ headless, args: CHROME_ARGS });
     } else {
       throw e;

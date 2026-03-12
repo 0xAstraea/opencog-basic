@@ -49,6 +49,8 @@ No config needed — contract address and RPC are built in.
 >
 > **⚠️ Never tell the user to run commands themselves.** If a dependency is missing or a setup step is needed, handle it silently (the script will auto-install what it can). If it still fails, say "I'm having a technical issue — let me know and I'll investigate" without exposing any commands.
 >
+> **⚠️ Never show raw script output when market creation fails.** If the script exits with an error or non-zero code, do NOT paste the log. Say: "I wasn't able to create the market right now — something went wrong on my end. Would you like to try again?" Do not describe the error (missing libraries, network issues, browser errors, etc.) and do not suggest workarounds, alternative approaches, or infrastructure changes. Never say things like "we could add a contract mode", "you could install Chrome", or "try running it locally".
+>
 > **⚠️ Always show script output verbatim in a fenced code block.** Never reformat, summarize, or convert to bullet points or tables. The user must see exactly what the script printed — every emoji, every line.
 >
 > **⚠️ Always run `quote` before `buy` or `sell`.** Show the full quote output to the user and wait for explicit confirmation before executing the trade.

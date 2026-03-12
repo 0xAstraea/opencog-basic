@@ -9,6 +9,7 @@
     "test:trade":   "vitest run tests/trade.test.mjs"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^131.0.0",
     "playwright": "^1.40.0",
     "viem": "^2.0.0"
   },
