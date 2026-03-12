@@ -355,11 +355,8 @@ Markets are created via `launchpad.mjs`, which logs in to `core.precog.markets` 
 
 **Prerequisites**
 - The wallet must have at least **3,000 Precog Points** (creator status). If restricted, the script reports `⛔ Market Creation Restricted` and stops.
-- Chromium must be installed once:
-  ```bash
-  npx playwright install chromium          # download browser binaries
-  npx playwright install-deps chromium     # Linux/Ubuntu only: install system libraries
-  ```
+- Chromium must be installed once: `npx playwright install chromium`
+  (No system packages needed — the script handles Linux server compatibility automatically.)
 
 **Command**
 ```bash
