@@ -11,6 +11,7 @@
 import { readFileSync, existsSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
+import { execSync } from "child_process";
 import { chromium } from "playwright";
 import { createWalletClient, http } from "viem";
 import { baseSepolia } from "viem/chains";
@@ -88,7 +89,18 @@ const CHROME_ARGS = process.platform === "linux"
   ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
   : [];
 
-const browser = await chromium.launch({ headless, args: CHROME_ARGS });
+let browser;
+try {
+  browser = await chromium.launch({ headless, args: CHROME_ARGS });
+} catch (e) {
+  if (/Executable doesn't exist|browserType\.launch|executable/i.test(e.message)) {
+    console.log("Chromium not found — installing (this runs once) …");
+    execSync("npx playwright install chromium", { stdio: "inherit" });
+    browser = await chromium.launch({ headless, args: CHROME_ARGS });
+  } else {
+    throw e;
+  }
+}
 const context = await browser.newContext();
 
 // Inject window.ethereum into every page/popup that opens in this context
