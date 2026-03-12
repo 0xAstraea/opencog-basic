@@ -1,6 +1,6 @@
 ---
 name: precog
-description: "Trade on PrecogMasterV8 prediction markets on Base Sepolia. Create a local wallet, list markets, check prices, buy and sell outcome shares. IMPORTANT: always paste script output verbatim inside a fenced code block — never summarize, shorten, or reformat it."
+description: "Trade on Precog prediction markets. List markets, buy and sell outcome shares, and create new markets."
 metadata:
   openclaw:
     requires:
@@ -10,6 +10,7 @@ metadata:
       bins:
         - node
         - npm
+        - npx
 ---
 
 # Precog Prediction Markets
@@ -23,6 +24,7 @@ Precog is a fully onchain prediction market protocol on Base Sepolia (mainnet on
 - Get detailed market info including category and resolution criteria
 - Quote, buy, and sell outcome shares using your local wallet
 - Check your positions (shares held, net cost, trade history)
+- Create new prediction markets (automated form submission via headless browser)
 
 For full protocol documentation see `PRECOG.md` — it covers prediction markets 101, the LS-LMSR pricing curve, resolution via Reality.eth + Kleros, LP mechanics, MATE markets, and more.
 
@@ -88,13 +90,13 @@ node {baseDir}/scripts/markets.mjs --all
 
 Example output:
 ```
-Active Markets (2)
+Active Markets (1)
 
 [4] Which AI model will be the top performer at the end of March?
-    📈 Claude  67.3%  💰 USDC  📅 Mar 31, 2026
-
-[5] Will ETH hit $5k by Q2?
-    📈 YES  58.1%  💰 USDC  📅 Jun 30, 2026
+    📈 Claude  67.3%  💰 MATE  📅 Mar 31, 2026
+    🏷️  AI / Leaderboard
+    📝  This market will resolve based on the Text Arena AI Competition leaderboard
+        rankings at arena.ai as of March 31, 2026, 23:59:59 UTC.
 
 ```
 
@@ -257,6 +259,7 @@ When the user asks what they can do, what Precog is, or how to get started — a
 > 🔍 **Market detail** — outcomes, probabilities, category, and resolution criteria for a specific market
 > 💸 **Trade** — quote first, then buy or sell outcome shares (by share count, budget, or target probability)
 > 📋 **Positions** — see your shares, net cost, and trade history
+> 🏗️ **Create markets** — propose a new prediction market on any topic; I'll fill the form and submit it automatically (wallet needs 3,000 Points for creator status)
 >
 > You currently hold 100 Claude shares on Market 4. Want to check the latest prices or make a move?
 
@@ -310,17 +313,98 @@ User: "Sell my Claude shares on market 4"
 → Wait for user to confirm
 → node sell.mjs --market 4 --outcome 1 --shares <n> --min <suggested-min>
 → After trade: suggest checking positions or remaining balance
+
+User: "Create a market about X" / "Can you create a market for Y?"
+→ Gather any missing required fields from the user:
+    question, description, category, outcomes (comma-separated), start date, end date, token address
+→ Present all fields to the user and ask for confirmation before running
+→ node launchpad.mjs --question "..." --description "..." --category "..." \
+      --outcomes "..." --start "YYYY-MM-DD" --end "YYYY-MM-DD" --token "0x..."
+→ Show full output verbatim in a fenced code block
+→ After success, remind the user of the two required next steps:
+    1. Fund the market at https://core.precog.markets/84532/launchpad
+    2. Await staff approval before the market goes live
+
+User asks about a topic/event and no matching market exists in markets.mjs output
+→ After listing markets, add: "No market exists for [topic] yet. Would you like me to create one?"
+→ If yes: gather fields and proceed as above
 ```
 
 ---
 
-## Creating or funding markets
+## Create a Market
 
-This skill only supports trading (buy/sell/quote). Creating markets and providing liquidity is done through the web app. Direct the user to:
+Markets are created via `launchpad.mjs`, which logs in to `core.precog.markets` automatically and submits the creation form using a headless browser.
 
-**https://core.precog.markets/launchpad**
+**Prerequisites**
+- The wallet must have at least **3,000 Precog Points** (creator status). If restricted, the script reports `⛔ Market Creation Restricted` and stops.
+- Chromium must be installed once: `npx playwright install chromium`
 
-Do not attempt to create or fund markets via scripts.
+**Command**
+```bash
+node {baseDir}/scripts/launchpad.mjs \
+  --question    "Will X happen?" \
+  --description "Resolves YES if..." \
+  --category    "SPORTS" \
+  --outcomes    "YES,NO" \
+  --start       "2026-04-01" \
+  --end         "2026-06-30" \
+  --token       "0x…"
+```
+
+**Flags**
+
+| Flag | Required | Notes |
+|---|---|---|
+| `--question` | yes | The market title / question |
+| `--description` | yes | Resolution criteria — be precise |
+| `--category` | yes | e.g. `SPORTS`, `POLITICS`, `CRYPTO`, `AI` |
+| `--outcomes` | yes | Comma-separated, e.g. `"YES,NO"` or `"TeamA,TeamB,Draw"` |
+| `--start` | yes | Trading start date ISO: `2026-04-01` |
+| `--end` | yes | Trading end / resolution date ISO: `2026-06-30` |
+| `--token` | yes | Collateral token address. MATE (practice) = `0xC139C86de76DF41c041A30853C3958427fA7CEbD` |
+| `--image` | no | IPFS or HTTPS image URL |
+| `--email` | no | Creator contact email |
+| `--headless` | no | Run without a visible browser window |
+
+**What the script does**
+1. Logs in via injected MetaMask provider (signs SIWE message automatically — no user action needed)
+2. Fills all form fields
+3. Clicks Review Market → Create Market → Confirm Creation
+4. Prints `🎉 Market creation submitted!` on success
+
+**After submission — two more steps required**
+
+> ⚠️ The market is NOT live yet after the script finishes.
+
+1. **Fund the market** — the creator must provide initial liquidity at:
+   **https://core.precog.markets/84532/launchpad**
+   Without funding the market has no liquidity and cannot be traded.
+
+2. **Staff approval** — the Precog team reviews and approves markets before they go live. This is not instant; tell the user to expect a delay.
+
+**Example output**
+```
+Wallet: 0x01BE…
+Navigating to https://core.precog.markets/84532/create-market …
+Session established.
+
+📝  Filling market creation form …
+  ✏️   question: Will Argentina beat Brazil?
+  ✏️   description: Resolves YES if Argentina wins.
+  ✏️   category: SPORTS
+  🪙  token options: MATE, DACC, Custom Token
+  🪙  custom token address: 0x…
+  ➕  outcome: YES
+  ➕  outcome: NO
+  📅  start date set: 2026-06-01
+  📅  end date set: 2026-07-15
+  🔍  Clicked Review Market
+  🚀  Clicked Create Market
+  ✅  Clicked Confirm Creation
+
+🎉  Market creation submitted!
+```
 
 ---
 

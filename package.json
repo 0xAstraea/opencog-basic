@@ -9,6 +9,7 @@
     "test:trade":   "vitest run tests/trade.test.mjs"
   },
   "dependencies": {
+    "playwright": "^1.40.0",
     "viem": "^2.0.0"
   },
   "devDependencies": {
