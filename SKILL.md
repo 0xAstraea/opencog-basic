@@ -1,6 +1,6 @@
 ---
 name: precog
-description: "Trade on Precog prediction markets. List markets, buy and sell outcome shares, and create new markets."
+description: "Trade on prediction markets. Create a local wallet, list markets, check prices, buy and sell outcome shares. Coming soon: create and fund markets directly from this skill."
 metadata:
   openclaw:
     requires:
@@ -10,7 +10,6 @@ metadata:
       bins:
         - node
         - npm
-        - npx
 ---
 
 # Precog Prediction Markets
@@ -24,7 +23,8 @@ Precog is a fully onchain prediction market protocol on Base Sepolia (mainnet on
 - Get detailed market info including category and resolution criteria
 - Quote, buy, and sell outcome shares using your local wallet
 - Check your positions (shares held, net cost, trade history)
-- Create new prediction markets (automated form submission via headless browser)
+
+> 🚧 **Coming soon:** Native market creation — submit and fund new markets directly from this skill without visiting the web UI.
 
 For full protocol documentation see `PRECOG.md` — it covers prediction markets 101, the LS-LMSR pricing curve, resolution via Reality.eth + Kleros, LP mechanics, MATE markets, and more.
 
@@ -44,8 +44,6 @@ No config needed — contract address and RPC are built in.
 > **⚠️ Do NOT create batch/automation scripts.** Use existing scripts one at a time.
 >
 > **⚠️ Do NOT edit skill files.** Report bugs or missing features to the user instead of fixing them.
->
-> **⚠️ Never expose implementation details to the user.** Do not mention script names (`launchpad.mjs`, `markets.mjs`, etc.), CLI commands, flags, or error stack traces. If something fails, say "something went wrong" and describe what to try next — never show the raw command or suggest the user run it themselves.
 >
 > **⚠️ Always show script output verbatim in a fenced code block.** Never reformat, summarize, or convert to bullet points or tables. The user must see exactly what the script printed — every emoji, every line.
 >
@@ -92,13 +90,13 @@ node {baseDir}/scripts/markets.mjs --all
 
 Example output:
 ```
-Active Markets (1)
+Active Markets (2)
 
 [4] Which AI model will be the top performer at the end of March?
     📈 Claude  67.3%  💰 MATE  📅 Mar 31, 2026
-    🏷️  AI / Leaderboard
-    📝  This market will resolve based on the Text Arena AI Competition leaderboard
-        rankings at arena.ai as of March 31, 2026, 23:59:59 UTC.
+
+[5] Will ETH hit $5k by Q2?
+    📈 YES  58.1%  💰 USDC  📅 Jun 30, 2026
 
 ```
 
@@ -251,16 +249,16 @@ Which AI model will be the top performer at the end of March?
 
 ## Responding to "what can I do?" questions
 
-When the user asks what they can do, what Precog is, or how to get started — answer in plain prose with emojis, no tables. **Never mention script names or CLI commands.** Mention their current positions if you know them. Example:
+When the user asks what they can do, what Precog is, or how to get started — answer in plain prose with emojis, no tables. Mention their current positions if you know them. Example:
 
 > With Precog you can trade on the probability of real-world outcomes using MATE (a safe practice token — no real money).
 >
 > Here's what you can do:
 >
-> 🗂️ **Browse markets** — see what's open, leading outcomes, categories, and resolution criteria
-> 💸 **Trade** — buy or sell outcome shares by amount, budget, or target probability
-> 📋 **Check positions** — see your shares, net cost, and trade history
-> 🏗️ **Create a market** — I can set up a new prediction market on any topic for you
+> 🗂️ **List markets** — see what's open and the leading outcome for each
+> 🔍 **Market detail** — outcomes, probabilities, category, and resolution criteria for a specific market
+> 💸 **Trade** — quote first, then buy or sell outcome shares (by share count, budget, or target probability)
+> 📋 **Positions** — see your shares, net cost, and trade history
 >
 > You currently hold 100 Claude shares on Market 4. Want to check the latest prices or make a move?
 
@@ -316,114 +314,52 @@ User: "Sell my Claude shares on market 4"
 → After trade: suggest checking positions or remaining balance
 
 User: "Create a market about X" / "Can you create a market for Y?"
-→ DO NOT mention scripts, commands, or technical details to the user
-→ Gather any missing required fields conversationally:
-    question, resolution criteria, category, outcomes, start date, end date, collateral token
-→ Propose sensible defaults based on the topic (e.g. YES/NO for binary, team names for a tournament)
-→ Present a summary to the user and ask for confirmation, e.g.:
-    "Here's what I'll create:
-     ❓ Will Argentina win the 2026 FIFA World Cup?
-     📝 Resolves YES if Argentina is crowned champion on July 19, 2026.
-     🏷️ SPORTS
-     🔘 Outcomes: YES / NO
-     📅 Jun 1 – Jul 19, 2026
-     🪙 MATE
-     📧 you@email.com (optional — omit if not provided)
-     Shall I go ahead?"
-→ Also ask: "Would you like to receive email notifications about this market? If so, share your email." (optional — skip if user declines)
-→ On confirmation: run launchpad.mjs with the gathered fields (internal — never shown to user)
-→ Show the script output verbatim in a fenced code block
-→ After 🎉 Market creation submitted!, tell the user in plain language:
-    "✅ Market created and submitted for review!
-     Next steps:
-     1️⃣ Fund it with liquidity at https://core.precog.markets/84532/launchpad
-     2️⃣ The Precog team will review and approve it before it goes live — this may take some time."
-
-User asks about a topic/event and no matching market exists
-→ After listing markets say naturally (no script names):
-    "There's no market for [topic] yet. Want me to create one? 🏗️"
-→ If yes: gather fields and proceed as above
+→ Tell the user to go to https://core.precog.markets/84532/create-market
+→ Explain briefly: log in with MetaMask, fill the form, submit for review
+→ Remind them: after submission they need to fund the market at the launchpad
+  and wait for staff approval before it goes live
+→ Do NOT attempt to automate this — no script can do it on this server
 ```
 
 ---
 
 ## Create a Market
 
-Markets are created via `launchpad.mjs`, which logs in to `core.precog.markets` automatically and submits the creation form using a headless browser.
+Market creation must be done manually through the Precog web UI — no script can
+automate this from the server.
 
-**Prerequisites**
-- The wallet must have at least **3,000 Precog Points** (creator status). If restricted, the script reports `⛔ Market Creation Restricted` and stops.
-- Chromium must be installed once:
-  ```bash
-  npx playwright install chromium          # download browser binaries
-  npx playwright install-deps chromium     # Linux/Ubuntu only: install system libraries
-  ```
-
-**Command**
-```bash
-node {baseDir}/scripts/launchpad.mjs \
-  --question    "Will X happen?" \
-  --description "Resolves YES if..." \
-  --category    "SPORTS" \
-  --outcomes    "YES,NO" \
-  --start       "2026-04-01" \
-  --end         "2026-06-30" \
-  --token       "0x…"
-```
-
-**Flags**
-
-| Flag | Required | Notes |
-|---|---|---|
-| `--question` | yes | The market title / question |
-| `--description` | yes | Resolution criteria — be precise |
-| `--category` | yes | e.g. `SPORTS`, `POLITICS`, `CRYPTO`, `AI` |
-| `--outcomes` | yes | Comma-separated, e.g. `"YES,NO"` or `"TeamA,TeamB,Draw"` |
-| `--start` | yes | Trading start date ISO: `2026-04-01` |
-| `--end` | yes | Trading end / resolution date ISO: `2026-06-30` |
-| `--token` | yes | Collateral token address. MATE (practice) = `0xC139C86de76DF41c041A30853C3958427fA7CEbD` |
-| `--image` | no | IPFS or HTTPS image URL |
-| `--email` | no | Creator contact email |
-| `--headless` | no | Run without a visible browser window |
-
-**What the script does**
-1. Logs in via injected MetaMask provider (signs SIWE message automatically — no user action needed)
-2. Fills all form fields
-3. Clicks Review Market → Create Market → Confirm Creation
-4. Prints `🎉 Market creation submitted!` on success
+**Steps:**
+1. Go to **https://core.precog.markets/84532/create-market**
+2. Connect your wallet (MetaMask or compatible)
+3. Fill in the market details:
+   - Question, description (resolution criteria), category
+   - Outcomes (e.g. YES / NO, or multiple choices)
+   - Start date, end date
+   - Collateral token (MATE address: `0xC139C86de76DF41c041A30853C3958427fA7CEbD`)
+4. Click **Review Market → Create Market → Confirm Creation**
 
 **After submission — two more steps required**
 
-> ⚠️ The market is NOT live yet after the script finishes.
+> ⚠️ The market is NOT live yet after submitting the form.
 
-1. **Fund the market** — the creator must provide initial liquidity at:
+1. **Fund the market** — provide initial liquidity at:
    **https://core.precog.markets/84532/launchpad**
-   Without funding the market has no liquidity and cannot be traded.
+2. **Staff approval** — the Precog team reviews and approves markets before they go live.
 
-2. **Staff approval** — the Precog team reviews and approves markets before they go live. This is not instant; tell the user to expect a delay.
+**Prerequisites**
+- Wallet must have at least **3,000 Precog Points** (creator status).
+  Without this the form will show "Market Creation Restricted".
 
-**Example output**
-```
-Wallet: 0x01BE…
-Navigating to https://core.precog.markets/84532/create-market …
-Session established.
+---
 
-📝  Filling market creation form …
-  ✏️   question: Will Argentina beat Brazil?
-  ✏️   description: Resolves YES if Argentina wins.
-  ✏️   category: SPORTS
-  🪙  token options: MATE, DACC, Custom Token
-  🪙  custom token address: 0x…
-  ➕  outcome: YES
-  ➕  outcome: NO
-  📅  start date set: 2026-06-01
-  📅  end date set: 2026-07-15
-  🔍  Clicked Review Market
-  🚀  Clicked Create Market
-  ✅  Clicked Confirm Creation
+## Roadmap
 
-🎉  Market creation submitted!
-```
+Features planned for future versions of this skill:
+
+- **Market creation** — submit a new prediction market directly from the skill (no web UI needed).
+  This requires direct contract access that is currently restricted; a permissionless path is in progress.
+- **Market funding** — provide initial liquidity to a newly created market from the CLI.
+- **Liquidity management** — add/remove LP positions and track LP returns.
 
 ---
 

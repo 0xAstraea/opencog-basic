@@ -21,6 +21,7 @@ export async function main(deps = {}) {
   const showAll = "all" in a;
   const result  = [];
 
+  // ── --all: list every market with status, no prices ───────────────────────
   if (showAll) {
     console.log(`\nAll Markets (${total})\n`);
     for (let i = 0; i < Number(total); i++) {
@@ -31,6 +32,7 @@ export async function main(deps = {}) {
       result.push({ id: i, question, status: s });
     }
   } else {
+    // ── Default: active markets with leading prediction and token ─────────────
     const active = [];
     for (let i = 0; i < Number(total); i++) {
       const market = await read("markets", [BigInt(i)]);

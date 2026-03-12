@@ -1,3 +1,15 @@
+// LS-LMSR pricing model and market math helpers used by quote.mjs.
+//
+// LSLMSR  — full class implementation of the Logarithmic Scoring Rule
+//           Market Maker with liquidity-sensitive parameter (alpha).
+//           Used for --price target resolution (maxSharesFromPrice).
+//
+// marketSharesFromCost / marketPriceAfterTrade / getFuturePriceAfterTrade —
+//           standalone functions that mirror the on-chain cost curve.
+//           Used for --cost / --all resolution and probability-after-trade display.
+
+// ── LSLMSR class ──────────────────────────────────────────────────────────────
+
 export class LSLMSR {
     constructor(outcomes, alpha, initialShares = 0, sellFee = 0) {
       this.outcomes = outcomes;
@@ -155,6 +167,8 @@ export class LSLMSR {
   }
 
 
+
+// ── Standalone market cost / price functions ──────────────────────────────────
 
 /**
  * Calculate the total amount of collateral deposited in a Market

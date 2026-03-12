@@ -1,3 +1,9 @@
+// CLI argument utilities shared by all scripts.
+//
+// parseArgs   — minimal --key value / --key=value / --flag parser
+// requireArgs — exits with an error listing any missing required flags
+// getChainFromArgs — reads --chain or CHAIN env (currently unused by scripts)
+
 // Minimal CLI arg parser. Supports --key value and --key=value.
 export function parseArgs(argv = process.argv.slice(2)) {
   const args = {};

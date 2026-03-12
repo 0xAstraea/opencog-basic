@@ -26,6 +26,7 @@ export async function main(deps = {}) {
   const { read, outcomes, pct, toFP64, fromFP64, fromRaw, tokenBalance, getWallet } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
+  // ── Args ──────────────────────────────────────────────────────────────────
   const a = _parseArgs();
   _requireArgs(a, ["market", "outcome"]);
 
@@ -39,6 +40,7 @@ export async function main(deps = {}) {
   const marketId = BigInt(a.market);
   const outcome  = parseInt(a.outcome);
 
+  // ── Market & token info ───────────────────────────────────────────────────
   const market = await read("markets", [marketId]);
   const [question, , , , outcomesRaw] = market;
   const [, , colSymbol] = await read("marketCollateralInfo", [marketId]);
@@ -49,13 +51,14 @@ export async function main(deps = {}) {
     : rawOuts;
   const label = outcomeList[outcome - 1] ?? `Outcome ${outcome}`;
 
-  // Always fetch market state for future price calculations
+  // Fetch current shares state — needed for local price simulation
   const [, alphaFP, , sellFeeFP] = await read("marketSetupInfo", [marketId]);
   const [, sharesBalancesFP]     = await read("marketSharesInfo", [marketId]);
   const alpha    = fromFP64(alphaFP);
   const sellFee  = fromFP64(sellFeeFP);
   const sharesArr = sharesBalancesFP.map(fp => fromFP64(fp)); // keep 1-indexed
 
+  // ── Resolve share count from flag ─────────────────────────────────────────
   let sharesNum;
 
   if ("all" in a) {
@@ -84,6 +87,7 @@ export async function main(deps = {}) {
     return null;
   }
 
+  // ── On-chain price quotes ─────────────────────────────────────────────────
   const sharesFP  = toFP64(sharesNum);
   const buyCostFP = await read("marketBuyPrice",  [marketId, BigInt(outcome), sharesFP]);
   const sellRetFP = await read("marketSellPrice", [marketId, BigInt(outcome), sharesFP]);
@@ -91,6 +95,7 @@ export async function main(deps = {}) {
   const sellRet   = fromFP64(BigInt(sellRetFP));
   const perShare  = buyCost / sharesNum;
 
+  // ── Local price simulation (future probability after trade) ───────────────
   const futureBuyPrice  = marketPriceAfterTrade(sharesArr, alpha, outcome, sharesNum);
   const futureSellPrice = getFuturePriceAfterTrade(sharesArr, alpha, outcome, -sharesNum);
   const maxReturn       = sharesNum;
@@ -103,6 +108,7 @@ export async function main(deps = {}) {
     prob = pct(buyPrices[outcome]) + "%";
   } catch {}
 
+  // ── Output ────────────────────────────────────────────────────────────────
   const hr = "─".repeat(57);
 
   console.log(`\n📋  Quote — Market ${a.market}: ${question}`);

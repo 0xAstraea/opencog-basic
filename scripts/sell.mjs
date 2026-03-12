@@ -15,6 +15,7 @@ export async function main(deps = {}) {
   const { read, write, getWallet, outcomes, toFP64, toRaw } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
+  // ── Args ──────────────────────────────────────────────────────────────────
   const a = _parseArgs();
   _requireArgs(a, ["market", "outcome", "shares", "min"]);
 
@@ -23,12 +24,14 @@ export async function main(deps = {}) {
   const sharesFP = toFP64(a.shares);
   const slippage = parseFloat(a.slippage ?? "1");
 
+  // ── Account & collateral ──────────────────────────────────────────────────
   const { account, wallet } = getWallet();
 
   const [, , colSymbol, colDecimals] = await read("marketCollateralInfo", [marketId]);
   const dec    = Number(colDecimals);
   const minRaw = toRaw((parseFloat(a.min) * (1 - slippage / 100)).toFixed(dec), dec);
 
+  // ── Market outcome label ──────────────────────────────────────────────────
   const market = await read("markets", [marketId]);
   const [, , , , outcomesRaw] = market;
   const outs  = outcomes(outcomesRaw);
@@ -38,6 +41,7 @@ export async function main(deps = {}) {
   console.log(`Min receive: ${a.min} ${colSymbol} (-${slippage}% slippage)`);
   console.log(`Wallet: ${account.address}\n`);
 
+  // ── Execute sell ──────────────────────────────────────────────────────────
   await write(wallet, account, "marketSell", [marketId, BigInt(outcome), sharesFP, minRaw]);
 
   console.log(`\n✓ Sold ${a.shares} shares of ${label} on market ${a.market}`);

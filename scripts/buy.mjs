@@ -16,6 +16,7 @@ export async function main(deps = {}) {
     { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
+  // ── Args ──────────────────────────────────────────────────────────────────
   const a = _parseArgs();
   _requireArgs(a, ["market", "outcome", "shares", "max"]);
 
@@ -24,12 +25,14 @@ export async function main(deps = {}) {
   const sharesFP = toFP64(a.shares);
   const slippage = parseFloat(a.slippage ?? "1");
 
+  // ── Account & collateral ──────────────────────────────────────────────────
   const { account, wallet } = getWallet();
 
   const [colToken, , colSymbol, colDecimals] = await read("marketCollateralInfo", [marketId]);
   const dec    = Number(colDecimals);
   const maxRaw = toRaw((parseFloat(a.max) * (1 + slippage / 100)).toFixed(dec), dec);
 
+  // ── Market info & guard ───────────────────────────────────────────────────
   const market = await read("markets", [marketId]);
   const [question, , , , outcomesRaw, , , , , endTs] = market;
 
@@ -45,6 +48,7 @@ export async function main(deps = {}) {
   console.log(`Max spend: ${a.max} ${colSymbol} (+${slippage}% slippage)`);
   console.log(`Wallet: ${account.address}\n`);
 
+  // ── Approve token spend and execute buy ───────────────────────────────────
   await ensureApproval(wallet, account, colToken, MASTER_ADDRESS, maxRaw);
   await write(wallet, account, "marketBuy", [marketId, BigInt(outcome), sharesFP, maxRaw]);
 
