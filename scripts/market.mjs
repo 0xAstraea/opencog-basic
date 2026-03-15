@@ -11,31 +11,28 @@ import * as client from "./lib/client.mjs";
 import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, outcomes, pct, status, date } = { ...client, ...deps };
+  const { multiread, outcomes, pct, status, date } = { ...client, ...deps };
   const _parseArgs = deps.parseArgs ?? parseArgs;
 
   const a = _parseArgs();
   requireArgs(a, ["market"]);
 
-  const id     = Number(a.market);
-  const market = await read("markets", [BigInt(id)]);
+  const id = Number(a.market);
+  const [marketRes, pricesRes, colRes] = await multiread([
+    ["markets",              [BigInt(id)]],
+    ["marketPrices",         [BigInt(id)]],
+    ["marketCollateralInfo", [BigInt(id)]],
+  ], { allowFailure: true });
+
+  const market = marketRes.result;
   const [question, resolutionCriteria, , category, outcomesRaw, , , , , endTs] = market;
+  const buyPrices = pricesRes.status === "success" ? pricesRes.result[0] : null;
+  const token     = colRes.status === "success"    ? colRes.result[2]    : null;
 
   const rawOuts = outcomes(outcomesRaw);
   const outs = (rawOuts.length === 1 && rawOuts[0].includes(","))
     ? rawOuts[0].split(",").map(s => s.trim()).filter(Boolean)
     : rawOuts;
-
-  let buyPrices = null;
-  try {
-    [buyPrices] = await read("marketPrices", [BigInt(id)]);
-  } catch {}
-
-  let token = null;
-  try {
-    const [, , colSymbol] = await read("marketCollateralInfo", [BigInt(id)]);
-    token = colSymbol;
-  } catch {}
 
   const s = status(endTs);
 

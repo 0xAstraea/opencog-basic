@@ -12,7 +12,7 @@ import * as client from "./lib/client.mjs";
 import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, write, getWallet, ensureApproval, outcomes, toFP64, toRaw, MASTER_ADDRESS } =
+  const { multiread, write, getWallet, ensureApproval, outcomes, toFP64, toRaw, MASTER_ADDRESS } =
     { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
@@ -28,12 +28,16 @@ export async function main(deps = {}) {
   // ── Account & collateral ──────────────────────────────────────────────────
   const { account, wallet } = getWallet();
 
-  const [colToken, , colSymbol, colDecimals] = await read("marketCollateralInfo", [marketId]);
+  const [colRes, marketRes] = await multiread([
+    ["marketCollateralInfo", [marketId]],
+    ["markets",              [marketId]],
+  ]);
+  const [colToken, , colSymbol, colDecimals] = colRes;
+  const market = marketRes;
   const dec    = Number(colDecimals);
   const maxRaw = toRaw((parseFloat(a.max) * (1 + slippage / 100)).toFixed(dec), dec);
 
   // ── Market info & guard ───────────────────────────────────────────────────
-  const market = await read("markets", [marketId]);
   const [question, , , , outcomesRaw, , , , , endTs] = market;
 
   if (Date.now() / 1000 > Number(endTs)) {

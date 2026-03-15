@@ -63,6 +63,18 @@ export function read(fn, args = []) {
   return pub.readContract({ address: MASTER_ADDRESS, abi: ABI, functionName: fn, args });
 }
 
+export function multiread(calls, { allowFailure = false } = {}) {
+  return pub.multicall({
+    contracts: calls.map(([functionName, args = []]) => ({
+      address: MASTER_ADDRESS,
+      abi: ABI,
+      functionName,
+      args,
+    })),
+    allowFailure,
+  });
+}
+
 export async function write(wallet, account, fn, fnArgs) {
   const hash = await wallet.writeContract({
     address: MASTER_ADDRESS, abi: ABI, functionName: fn, args: fnArgs, account,

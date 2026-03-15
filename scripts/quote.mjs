@@ -23,7 +23,7 @@ import { parseArgs, requireArgs } from "./lib/args.mjs";
 import { LSLMSR, marketSharesFromCost, marketPriceAfterTrade, getFuturePriceAfterTrade } from "./lib/helper.mjs";
 
 export async function main(deps = {}) {
-  const { read, outcomes, pct, toFP64, fromFP64, fromRaw, tokenBalance, getWallet } = { ...client, ...deps };
+  const { multiread, outcomes, pct, toFP64, fromFP64, fromRaw, tokenBalance, getWallet } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   // ── Args ──────────────────────────────────────────────────────────────────
@@ -40,10 +40,24 @@ export async function main(deps = {}) {
   const marketId = BigInt(a.market);
   const outcome  = parseInt(a.outcome);
 
-  // ── Market & token info ───────────────────────────────────────────────────
-  const market = await read("markets", [marketId]);
-  const [question, , , , outcomesRaw] = market;
-  const [, , colSymbol] = await read("marketCollateralInfo", [marketId]);
+  // ── Batch 1: market info, collateral, setup, shares, prices ──────────────
+  const [marketRes, colRes, setupRes, sharesRes, pricesRes] = await multiread([
+    ["markets",              [marketId]],
+    ["marketCollateralInfo", [marketId]],
+    ["marketSetupInfo",      [marketId]],
+    ["marketSharesInfo",     [marketId]],
+    ["marketPrices",         [marketId]],
+  ], { allowFailure: true });
+
+  if (marketRes.status  === "failure") throw new Error("Failed to load market");
+  if (colRes.status     === "failure") throw new Error("Failed to load collateral info");
+  if (setupRes.status   === "failure") throw new Error("Failed to load market setup info");
+  if (sharesRes.status  === "failure") throw new Error("Failed to load market shares info");
+
+  const [question, , , , outcomesRaw]  = marketRes.result;
+  const [colToken, , colSymbol, colDecimals] = colRes.result;
+  const [, alphaFP, , sellFeeFP]       = setupRes.result;
+  const [, sharesBalancesFP]           = sharesRes.result;
 
   const rawOuts = outcomes(outcomesRaw);
   const outcomeList = (rawOuts.length === 1 && rawOuts[0].includes(","))
@@ -51,9 +65,6 @@ export async function main(deps = {}) {
     : rawOuts;
   const label = outcomeList[outcome - 1] ?? `Outcome ${outcome}`;
 
-  // Fetch current shares state — needed for local price simulation
-  const [, alphaFP, , sellFeeFP] = await read("marketSetupInfo", [marketId]);
-  const [, sharesBalancesFP]     = await read("marketSharesInfo", [marketId]);
   const alpha    = fromFP64(alphaFP);
   const sellFee  = fromFP64(sellFeeFP);
   const sharesArr = sharesBalancesFP.map(fp => fromFP64(fp)); // keep 1-indexed
@@ -63,7 +74,6 @@ export async function main(deps = {}) {
 
   if ("all" in a) {
     const { account } = getWallet();
-    const [colToken, , , colDecimals] = await read("marketCollateralInfo", [marketId]);
     const balRaw  = await tokenBalance(colToken, account.address);
     const balance = Number(balRaw) / 10 ** Number(colDecimals);
     console.log(`  💰  Wallet balance : ${balance.toFixed(4)} ${colSymbol}`);
@@ -87,10 +97,12 @@ export async function main(deps = {}) {
     return null;
   }
 
-  // ── On-chain price quotes ─────────────────────────────────────────────────
+  // ── Batch 2: on-chain price quotes ────────────────────────────────────────
   const sharesFP  = toFP64(sharesNum);
-  const buyCostFP = await read("marketBuyPrice",  [marketId, BigInt(outcome), sharesFP]);
-  const sellRetFP = await read("marketSellPrice", [marketId, BigInt(outcome), sharesFP]);
+  const [buyCostFP, sellRetFP] = await multiread([
+    ["marketBuyPrice",  [marketId, BigInt(outcome), sharesFP]],
+    ["marketSellPrice", [marketId, BigInt(outcome), sharesFP]],
+  ]);
   const buyCost   = fromFP64(BigInt(buyCostFP));
   const sellRet   = fromFP64(BigInt(sellRetFP));
   const perShare  = buyCost / sharesNum;
@@ -103,10 +115,9 @@ export async function main(deps = {}) {
   const sellPerShare    = sellRet / sharesNum;
 
   let prob = "N/A";
-  try {
-    const [buyPrices] = await read("marketPrices", [marketId]);
-    prob = pct(buyPrices[outcome]) + "%";
-  } catch {}
+  if (pricesRes.status === "success") {
+    prob = pct(pricesRes.result[0][outcome]) + "%";
+  }
 
   // ── Output ────────────────────────────────────────────────────────────────
   const hr = "─".repeat(57);

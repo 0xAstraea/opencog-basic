@@ -12,7 +12,7 @@ import * as client from "./lib/client.mjs";
 import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, write, getWallet, outcomes, toFP64, toRaw } = { ...client, ...deps };
+  const { multiread, write, getWallet, outcomes, toFP64, toRaw } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   // ── Args ──────────────────────────────────────────────────────────────────
@@ -27,13 +27,16 @@ export async function main(deps = {}) {
   // ── Account & collateral ──────────────────────────────────────────────────
   const { account, wallet } = getWallet();
 
-  const [, , colSymbol, colDecimals] = await read("marketCollateralInfo", [marketId]);
+  const [colRes, marketRes] = await multiread([
+    ["marketCollateralInfo", [marketId]],
+    ["markets",              [marketId]],
+  ]);
+  const [, , colSymbol, colDecimals] = colRes;
   const dec    = Number(colDecimals);
   const minRaw = toRaw((parseFloat(a.min) * (1 - slippage / 100)).toFixed(dec), dec);
 
   // ── Market outcome label ──────────────────────────────────────────────────
-  const market = await read("markets", [marketId]);
-  const [, , , , outcomesRaw] = market;
+  const [, , , , outcomesRaw] = marketRes;
   const outs  = outcomes(outcomesRaw);
   const label = outs[outcome - 1] ?? `Outcome ${outcome}`;
 

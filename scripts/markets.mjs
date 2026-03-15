@@ -11,7 +11,7 @@ import * as client from "./lib/client.mjs";
 import { parseArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, outcomes, pct, status, date } = { ...client, ...deps };
+  const { read, multiread, outcomes, pct, status, date } = { ...client, ...deps };
   const _parseArgs = deps.parseArgs ?? parseArgs;
 
   const a     = _parseArgs();
@@ -21,50 +21,70 @@ export async function main(deps = {}) {
   const showAll = "all" in a;
   const result  = [];
 
+  // Batch fetch all markets in one call
+  const marketResults = await multiread(
+    Array.from({ length: Number(total) }, (_, i) => ["markets", [BigInt(i)]])
+  );
+
   // ── --all: list every market with status, no prices ───────────────────────
   if (showAll) {
     console.log(`\nAll Markets (${total})\n`);
-    for (let i = 0; i < Number(total); i++) {
-      const market = await read("markets", [BigInt(i)]);
-      const [question, , , , , , , , , endTs] = market;
+    for (let i = 0; i < marketResults.length; i++) {
+      const [question, , , , , , , , , endTs] = marketResults[i];
       const s = status(endTs);
       console.log(`  [${i}]  ${question}  [${s}]`);
       result.push({ id: i, question, status: s });
     }
   } else {
     // ── Default: active markets with leading prediction and token ─────────────
+    const activeIds = [];
+    for (let i = 0; i < marketResults.length; i++) {
+      if (status(marketResults[i][9]) === "active") activeIds.push(i);
+    }
+
+    if (activeIds.length === 0) {
+      console.log("\nNo active markets.\n");
+      return result;
+    }
+
+    // Batch fetch prices + collateral for all active markets in one call
+    const priceAndColResults = await multiread([
+      ...activeIds.map(i => ["marketPrices",         [BigInt(i)]]),
+      ...activeIds.map(i => ["marketCollateralInfo",  [BigInt(i)]]),
+    ], { allowFailure: true });
+
+    const pricesArr = priceAndColResults.slice(0, activeIds.length);
+    const colArr    = priceAndColResults.slice(activeIds.length);
+
     const active = [];
-    for (let i = 0; i < Number(total); i++) {
-      const market = await read("markets", [BigInt(i)]);
+    for (let j = 0; j < activeIds.length; j++) {
+      const id     = activeIds[j];
+      const market = marketResults[id];
       const [question, , , , outcomesRaw, , , , , endTs] = market;
-      if (status(endTs) !== "active") continue;
 
       const rawOuts = outcomes(outcomesRaw);
-      // outcomes() splits by "|"; some markets use "," — normalise
       const outs = (rawOuts.length === 1 && rawOuts[0].includes(","))
         ? rawOuts[0].split(",").map(s => s.trim()).filter(Boolean)
         : rawOuts;
+
       let prediction = null;
-      let token = null;
-      try {
-        const [buyPrices] = await read("marketPrices", [BigInt(i)]);
+      const prRes = pricesArr[j];
+      if (prRes.status === "success") {
+        const buyPrices = prRes.result[0];
         let bestIdx = 1;
-        for (let j = 2; j <= outs.length; j++) {
-          if (buyPrices[j] > buyPrices[bestIdx]) bestIdx = j;
+        for (let k = 2; k <= outs.length; k++) {
+          if (buyPrices[k] > buyPrices[bestIdx]) bestIdx = k;
         }
         prediction = { label: outs[bestIdx - 1], pct: pct(buyPrices[bestIdx]) };
-      } catch {}
-      try {
-        const [, , colSymbol] = await read("marketCollateralInfo", [BigInt(i)]);
-        token = colSymbol;
-      } catch {}
+      }
 
-      active.push({ id: i, question, endTs, outs, prediction, token });
-    }
+      let token = null;
+      const coRes = colArr[j];
+      if (coRes.status === "success") {
+        token = coRes.result[2];
+      }
 
-    if (active.length === 0) {
-      console.log("\nNo active markets.\n");
-      return result;
+      active.push({ id, question, endTs, outs, prediction, token });
     }
 
     console.log(`\nActive Markets (${active.length})\n`);

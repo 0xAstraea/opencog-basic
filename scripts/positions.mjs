@@ -10,7 +10,7 @@ import * as client from "./lib/client.mjs";
 import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, getWallet, outcomes, fromRaw, pct } = { ...client, ...deps };
+  const { multiread, getWallet, outcomes, fromRaw, pct } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   const a = _parseArgs();
@@ -19,21 +19,26 @@ export async function main(deps = {}) {
   const marketId = BigInt(a.market);
   const { account } = getWallet();
 
-  const market = await read("markets", [marketId]);
-  const [question, , , , outcomesRaw] = market;
-  const [, , colSymbol, colDecimals]  = await read("marketCollateralInfo", [marketId]);
+  const [marketRes, colRes, accountRes, pricesRes] = await multiread([
+    ["markets",              [marketId]],
+    ["marketCollateralInfo", [marketId]],
+    ["marketAccountInfo",    [marketId, account.address]],
+    ["marketPrices",         [marketId]],
+  ], { allowFailure: true });
+
+  if (marketRes.status  === "failure") throw new Error("Failed to load market");
+  if (colRes.status     === "failure") throw new Error("Failed to load collateral info");
+  if (accountRes.status === "failure") throw new Error("Failed to load account info");
+
+  const [question, , , , outcomesRaw]                         = marketRes.result;
+  const [, , colSymbol, colDecimals]                          = colRes.result;
+  const [totalBuys, totalSells, deposited, withdrawn, redeemed, balances] = accountRes.result;
+  const buyPrices = pricesRes.status === "success" ? pricesRes.result[0] : null;
+
   const dec  = Number(colDecimals);
   const outs = outcomes(outcomesRaw);
 
-  const [totalBuys, totalSells, deposited, withdrawn, redeemed, balances] =
-    await read("marketAccountInfo", [marketId, account.address]);
-
   const netCost = deposited - withdrawn - redeemed;
-
-  let buyPrices = null;
-  try {
-    [buyPrices] = await read("marketPrices", [marketId]);
-  } catch {}
 
   // ── Header ────────────────────────────────────────────────────────────────
   console.log(`\n💼  Market ${a.market}`);
