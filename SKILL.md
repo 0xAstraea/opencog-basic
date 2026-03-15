@@ -1,15 +1,15 @@
 ---
 name: precog
 description: "Trade on prediction markets. Create a local wallet, list markets, check prices, buy and sell outcome shares. Coming soon: create and fund markets directly from this skill."
-metadata:
-  openclaw:
-    requires:
-      env:
-        PRIVATE_KEY: "Secp256k1 private key (0x-prefixed) for signing transactions. Created locally by running setup.mjs --generate and saved to ~/.openclaw/.env. Never transmitted over the network. Optional if you set it manually before first use."
-        PRECOG_RPC_URL: "optional — override the default public Base Sepolia RPC endpoints (https://sepolia.base.org and fallbacks)."
-      bins:
-        - node
-        - npm
+homepage: "https://github.com/openclaw/precog-skill"
+requires:
+  env:
+    PRIVATE_KEY: "Secp256k1 private key (0x-prefixed) for signing transactions. Generated locally by running setup.mjs --generate and saved to ~/.openclaw/.env. Never transmitted over the network. Required for buy/sell; optional (can be set manually) for read-only operations."
+    PRECOG_RPC_URL: "optional — override the default public Base Sepolia RPC endpoints (https://sepolia.base.org and fallbacks)."
+  bins:
+    - node
+    - npm
+  install: "npm install  # run once in the skill directory before first use"
 ---
 
 # Precog Prediction Markets
@@ -39,17 +39,17 @@ No config needed — contract address and RPC are built in.
 
 ---
 
-> **⚠️ Run scripts sequentially.** Parallel transactions will fail with nonce collisions.
+> **⚠️ Run scripts sequentially.** Parallel transactions share a nonce and will collide on-chain — run one script at a time.
 >
-> **⚠️ Do NOT create batch/automation scripts.** Use existing scripts one at a time.
+> **⚠️ Do NOT create batch or automation scripts.** Each transaction must be confirmed by the user individually; automated chains of trades bypass the confirmation step and can cause unintended financial loss.
 >
-> **⚠️ Do NOT edit skill files.** Report bugs or missing features to the user instead of fixing them.
+> **⚠️ Do NOT edit skill scripts.** The scripts are audited as a unit; silent edits could introduce bugs or security issues. If you find a bug, report it to the user so it can be fixed upstream.
 >
-> **⚠️ Always show script output verbatim in a fenced code block.** Never reformat, summarize, or convert to bullet points or tables. The user must see exactly what the script printed — every emoji, every line.
+> **⚠️ Always show script output verbatim in a fenced code block.** The output contains exact amounts, prices, and suggested parameters that will be used in the next command — reformatting or summarizing it risks losing or distorting those values.
 >
-> **⚠️ Always run `quote` before `buy` or `sell`.** Show the full quote output to the user and wait for explicit confirmation before executing the trade.
+> **⚠️ Always run `quote` before `buy` or `sell`.** The quote shows the exact cost/proceeds and the safe `--max`/`--min` slippage bounds. Show the full output to the user and wait for explicit confirmation before executing the trade.
 >
-> **⚠️ Never modify trade parameters.** If a script fails, show the exact error and stop. Do not retry with a different share count or any workaround. Token approval is handled automatically — never use allowance as a reason to change the trade size.
+> **⚠️ Never modify trade parameters.** If a script fails, show the exact error and stop. Do not retry with a different share count or workaround — incorrect parameters can result in unintended trades. Token approval is handled automatically inside the scripts.
 
 ---
 
