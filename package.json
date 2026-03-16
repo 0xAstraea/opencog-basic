@@ -17,12 +17,15 @@
   "openclaw": {
     "envVars": {
       "PRIVATE_KEY": "required — secp256k1 private key (0x-prefixed) for signing transactions. Written to ~/.openclaw/.env by setup.mjs --generate. Never transmitted over the network.",
-      "PRECOG_RPC_URL": "optional — override the default public Base Sepolia RPC endpoints."
+      "PRECOG_RPC_URL": "optional — override the default public RPC endpoints. Use a trusted endpoint only.",
+      "PRECOG_NETWORK": "optional — default network: 'sepolia' (testnet, default) or 'mainnet' (Base mainnet, real funds). Can be overridden per-command with --network."
     },
     "configPaths": {
       "~/.openclaw/.env": "created by setup.mjs --generate. Stores PRIVATE_KEY in plaintext. Treat as a wallet key file: restrict permissions and back it up."
     },
-    "network": "Base Sepolia (chainId 84532) — public RPC endpoints only, or PRECOG_RPC_URL if set",
-    "contract": "0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443 (PrecogMasterV8, Base Sepolia)"
+    "networks": {
+      "sepolia": { "chainId": 84532, "contract": "0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443" },
+      "mainnet": { "chainId": 8453,  "contract": "0x00000000000c109080dfa976923384b97165a57a" }
+    }
   }
 }

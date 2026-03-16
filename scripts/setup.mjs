@@ -19,8 +19,11 @@ const ENV_DIR  = join(homedir(), ".openclaw");
 const ENV_FILE = join(ENV_DIR, ".env");
 
 export async function main(deps = {}) {
-  const { pub, read, tokenBalance, fromRaw } = { ...client, ...deps };
   const _parseArgs = deps.parseArgs ?? parseArgs;
+  const a0 = _parseArgs();
+  if (a0.network) client.setNetwork(a0.network);
+
+  const { pub, read, tokenBalance, fromRaw } = { ...client, ...deps };
   const {
     existsSync:     _existsSync     = existsSync,
     readFileSync:   _readFileSync   = readFileSync,
@@ -31,7 +34,7 @@ export async function main(deps = {}) {
     getPrivateKey:  _getPrivateKey  = () => process.env.PRIVATE_KEY,
   } = deps;
 
-  const a = _parseArgs();
+  const a = a0;
 
   // ── Generate ────────────────────────────────────────────────────────────────
   if ("generate" in a) {

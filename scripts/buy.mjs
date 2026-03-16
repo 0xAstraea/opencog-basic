@@ -12,12 +12,14 @@ import * as client from "./lib/client.mjs";
 import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { multiread, write, getWallet, ensureApproval, outcomes, toFP64, toRaw, MASTER_ADDRESS } =
-    { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   // ── Args ──────────────────────────────────────────────────────────────────
   const a = _parseArgs();
+  if (a.network) client.setNetwork(a.network);
+
+  const { multiread, write, getWallet, ensureApproval, outcomes, toFP64, toRaw, MASTER_ADDRESS } =
+    { ...client, ...deps };
   _requireArgs(a, ["market", "outcome", "shares", "max"]);
 
   const marketId = BigInt(a.market);

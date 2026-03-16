@@ -8,7 +8,7 @@ This skill generates and stores a private key on your machine.
 
 - **`~/.openclaw/.env`** — created on first `setup.mjs --generate`. Contains `PRIVATE_KEY=0x...`. This file is never printed or transmitted, but it controls a real wallet. Back it up; losing it means losing access to any funds in that wallet.
 - **`PRIVATE_KEY`** env var — all trading scripts (`buy`, `sell`, `quote`, `positions`) require this key to be present. They read it from `~/.openclaw/.env` automatically.
-- **No key is ever sent to any server.** All transactions are signed locally and broadcast directly to the Base Sepolia RPC.
+- **No key is ever sent to any server.** All transactions are signed locally and broadcast directly to the RPC.
 
 ## Installation
 
@@ -17,6 +17,15 @@ cd ~/.openclaw/skills
 git clone https://github.com/0xAstraea/opencog-basic precog
 npm install
 ```
+
+## Networks
+
+| Network | Flag | Default? |
+|---|---|---|
+| Base Sepolia (testnet) | `--network sepolia` | **Yes** — safe to use, no real funds |
+| Base Mainnet | `--network mainnet` | No — real funds, explicit opt-in required |
+
+The default network is **Base Sepolia**. To use mainnet, pass `--network mainnet` to any script or set `PRECOG_NETWORK=mainnet` in your environment.
 
 ## What's included
 

@@ -1,5 +1,5 @@
 import { createPublicClient, createWalletClient, http, fallback } from "viem";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { readFileSync, existsSync } from "fs";
 import { homedir } from "os";
@@ -16,21 +16,54 @@ if (existsSync(ENV_FILE)) {
   }
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// ── Network config ────────────────────────────────────────────────────────────
 
-export const MASTER_ADDRESS = "0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443";
+const NETWORKS = {
+  sepolia: {
+    chain:   baseSepolia,
+    address: "0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443",
+    rpcs: [
+      "https://sepolia.base.org",
+      "https://base-sepolia-rpc.publicnode.com"
+    ],
+  },
+  mainnet: {
+    chain:   base,
+    address: "0x00000000000c109080dfa976923384b97165a57a",
+    rpcs: [
+      "https://mainnet.base.org",
+      "https://base-rpc.publicnode.com"
+    ],
+  },
+};
 
-// Public Base Sepolia RPCs — tries each in order, falls back automatically.
-// Override with PRECOG_RPC_URL if you have a private endpoint.
-const PUBLIC_RPCS = [
-  "https://sepolia.base.org",
-  "https://base-sepolia-rpc.publicnode.com",
-  "https://base-sepolia.blockpi.network/v1/rpc/public",
-];
+function _buildTransport(cfg) {
+  return process.env.PRECOG_RPC_URL
+    ? http(process.env.PRECOG_RPC_URL)
+    : fallback(cfg.rpcs.map(url => http(url)));
+}
 
-const transport = process.env.PRECOG_RPC_URL
-  ? http(process.env.PRECOG_RPC_URL)
-  : fallback(PUBLIC_RPCS.map(url => http(url)));
+let _networkKey = (process.env.PRECOG_NETWORK || "sepolia").toLowerCase();
+if (!NETWORKS[_networkKey]) _networkKey = "sepolia";
+
+let _cfg       = NETWORKS[_networkKey];
+let chain      = _cfg.chain;
+let transport  = _buildTransport(_cfg);
+
+export let MASTER_ADDRESS = _cfg.address;
+export let pub            = createPublicClient({ chain, transport });
+
+/** Switch to a different network. Call this before any contract reads/writes. */
+export function setNetwork(network) {
+  const key = network.toLowerCase();
+  if (!NETWORKS[key]) throw new Error(`Unknown network: "${network}". Use "sepolia" or "mainnet".`);
+  _networkKey   = key;
+  _cfg          = NETWORKS[key];
+  chain         = _cfg.chain;
+  transport     = _buildTransport(_cfg);
+  MASTER_ADDRESS = _cfg.address;
+  pub            = createPublicClient({ chain, transport });
+}
 
 // ── ABI ───────────────────────────────────────────────────────────────────────
 
@@ -39,10 +72,6 @@ const ABI_PATH = join(__dir, "../../abi/PrecogMasterV8.json");
 export const ABI = JSON.parse(readFileSync(ABI_PATH, "utf8"));
 
 // ── Clients ───────────────────────────────────────────────────────────────────
-
-const chain = baseSepolia;
-
-export const pub = createPublicClient({ chain, transport });
 
 export function getWallet() {
   const pk = process.env.PRIVATE_KEY;

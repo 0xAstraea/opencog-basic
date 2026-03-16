@@ -23,11 +23,13 @@ import { parseArgs, requireArgs } from "./lib/args.mjs";
 import { LSLMSR, marketSharesFromCost, marketPriceAfterTrade, getFuturePriceAfterTrade } from "./lib/helper.mjs";
 
 export async function main(deps = {}) {
-  const { multiread, outcomes, pct, toFP64, fromFP64, fromRaw, tokenBalance, getWallet } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   // ── Args ──────────────────────────────────────────────────────────────────
   const a = _parseArgs();
+  if (a.network) client.setNetwork(a.network);
+
+  const { multiread, outcomes, pct, toFP64, fromFP64, fromRaw, tokenBalance, getWallet } = { ...client, ...deps };
   _requireArgs(a, ["market", "outcome"]);
 
   if (!("shares" in a) && !("cost" in a) && !("price" in a) && !("all" in a)) {

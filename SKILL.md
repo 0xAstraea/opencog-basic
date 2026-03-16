@@ -5,7 +5,8 @@ homepage: "https://github.com/openclaw/precog-skill"
 requires:
   env:
     PRIVATE_KEY: "Secp256k1 private key (0x-prefixed) for signing transactions. Generated locally by running setup.mjs --generate and saved to ~/.openclaw/.env. Never transmitted over the network. Required for buy/sell; optional (can be set manually) for read-only operations."
-    PRECOG_RPC_URL: "optional — override the default public Base Sepolia RPC endpoints (https://sepolia.base.org and fallbacks)."
+    PRECOG_RPC_URL: "optional — override the default public RPC endpoints (https://sepolia.base.org for testnet, https://mainnet.base.org for mainnet). Use a trusted endpoint only."
+    PRECOG_NETWORK: "optional — default network to use: 'sepolia' (testnet, default) or 'mainnet' (Base mainnet, real funds). Can be overridden per-command with --network."
   bins:
     - node
     - npm
@@ -14,7 +15,7 @@ requires:
 
 # Precog Prediction Markets
 
-Precog is a fully onchain prediction market protocol on Base Sepolia (mainnet on Base, Ethereum, and Arbitrum coming soon). Anyone can create a market around a real-world question, fund it with liquidity, and trade outcome shares. Prices equal implied probabilities (0–1). Every action is a signed onchain transaction — no custody, no central party.
+Precog is a fully onchain prediction market protocol on Base. Anyone can create a market around a real-world question, fund it with liquidity, and trade outcome shares. Prices equal implied probabilities (0–1). Every action is a signed onchain transaction — no custody, no central party.
 
 **MATE** is a non-monetary practice token (no real economic value). Markets denominated in MATE are safe to use for learning and experimentation. MATE can be claimed at [matetoken.xyz](https://matetoken.xyz).
 
@@ -28,7 +29,20 @@ Precog is a fully onchain prediction market protocol on Base Sepolia (mainnet on
 
 For full protocol documentation see `PRECOG.md` — it covers prediction markets 101, the LS-LMSR pricing curve, resolution via Reality.eth + Kleros, LP mechanics, MATE markets, and more.
 
-No config needed — contract address and RPC are built in.
+Contract addresses and RPCs are built in — no config needed.
+
+## Networks
+
+**The default network is Base Sepolia (testnet).** No flag needed for testnet — scripts connect to sepolia unless told otherwise.
+
+Two networks are supported. Pass `--network <name>` to any script, or set `PRECOG_NETWORK` in your environment.
+
+| Network | `--network` value | Chain | Contract |
+|---|---|---|---|
+| Base Sepolia (testnet) | `sepolia` **← default** | Base Sepolia (84532) | `0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443` |
+| Base Mainnet | `mainnet` | Base (8453) | `0x00000000000c109080dfa976923384b97165a57a` |
+
+> ⚠️ **Mainnet uses real funds.** Before running any mainnet command, confirm the network with the user and show the contract address. Do NOT default to mainnet — always require an explicit `--network mainnet` flag or a `PRECOG_NETWORK=mainnet` env var set by the user.
 
 ## Security and local state
 
@@ -57,7 +71,7 @@ No config needed — contract address and RPC are built in.
 
 Check status or create a new wallet:
 ```bash
-node {baseDir}/scripts/setup.mjs
+node {baseDir}/scripts/setup.mjs [--network sepolia|mainnet]
 node {baseDir}/scripts/setup.mjs --generate
 ```
 The private key is saved to `~/.openclaw/.env` and **never printed**. Only the address is shown.
@@ -84,8 +98,8 @@ Wallet: 0x77Ffa97c2dcDA0FF6c9393281993962FA633d9E1
 ## List Markets
 
 ```bash
-node {baseDir}/scripts/markets.mjs
-node {baseDir}/scripts/markets.mjs --all
+node {baseDir}/scripts/markets.mjs [--network sepolia|mainnet]
+node {baseDir}/scripts/markets.mjs --all [--network sepolia|mainnet]
 ```
 
 Example output:
@@ -107,13 +121,13 @@ Active Markets (2)
 When the user asks for more info / details about a specific market:
 
 ```bash
-node {baseDir}/scripts/market.mjs --market <id>
+node {baseDir}/scripts/market.mjs --market <id> [--network sepolia|mainnet]
 ```
 
 Shows the title, category, status, end date, collateral, and all outcome probabilities ranked by price. After showing the output, **ask the user: "Would you like to see the resolution criteria?"** If they say yes:
 
 ```bash
-node {baseDir}/scripts/market.mjs --market <id> --criteria
+node {baseDir}/scripts/market.mjs --market <id> --criteria [--network sepolia|mainnet]
 ```
 
 Example output (`--market 4`):
@@ -174,14 +188,15 @@ rankings at arena.ai as of March 31, 2026, 23:59:59 UTC.
 **Do NOT guess share counts manually. Use the correct flag — the script computes the exact answer.**
 
 ```bash
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount> --buy
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc>     --buy
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0.0-1.0> --buy
-node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --all             --buy
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --shares <amount> --buy [--network sepolia|mainnet]
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --cost <usdc>     --buy [--network sepolia|mainnet]
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --price <0.0-1.0> --buy [--network sepolia|mainnet]
+node {baseDir}/scripts/quote.mjs --market <id> --outcome <n> --all             --buy [--network sepolia|mainnet]
 ```
 
 - `--outcome` is 1-based (1 = first outcome, usually YES)
 - `--buy` shows only the buy side; `--sell` shows only the sell side; omit both to show both sides
+- `--network` — `sepolia` (default) or `mainnet`; must match the network used for the subsequent buy/sell
 
 Example output (`--price 0.25 --buy`):
 ```
@@ -206,11 +221,12 @@ Example output (`--price 0.25 --buy`):
 ## Buy
 
 ```bash
-node {baseDir}/scripts/buy.mjs --market <id> --outcome <n> --shares <amount> --max <usdc>
+node {baseDir}/scripts/buy.mjs --market <id> --outcome <n> --shares <amount> --max <usdc> [--network sepolia|mainnet]
 ```
 
 - `--shares` — number of shares (from the quote output)
 - `--max` — maximum collateral to spend; use the `Suggested --max` value from the quote output
+- `--network` — must match the network used in the preceding quote
 - Token approval is handled automatically — never adjust `--max` or `--shares` for allowance reasons
 
 ---
@@ -218,18 +234,19 @@ node {baseDir}/scripts/buy.mjs --market <id> --outcome <n> --shares <amount> --m
 ## Sell
 
 ```bash
-node {baseDir}/scripts/sell.mjs --market <id> --outcome <n> --shares <amount> --min <usdc>
+node {baseDir}/scripts/sell.mjs --market <id> --outcome <n> --shares <amount> --min <usdc> [--network sepolia|mainnet]
 ```
 
 - `--shares` — number of shares to sell (check `positions.mjs` if unsure)
 - `--min` — minimum collateral to accept; use the `Suggested --min` value from the quote output
+- `--network` — must match the network used in the preceding quote
 
 ---
 
 ## Positions
 
 ```bash
-node {baseDir}/scripts/positions.mjs --market <id>
+node {baseDir}/scripts/positions.mjs --market <id> [--network sepolia|mainnet]
 ```
 
 Example output:
@@ -268,9 +285,15 @@ Adapt the last line to whatever you actually know about the user's positions and
 
 ## Standard flow
 
+`--network` is omitted from these examples for brevity. Add it to every command when the user is on mainnet.
+
 ```
 User: "What markets are open?"
 → node markets.mjs
+
+User: "What mainnet markets are open?" / "Show me Base mainnet markets"
+→ Confirm with the user: "This will connect to Base mainnet where real funds are used. Continue?"
+→ node markets.mjs --network mainnet
 
 User: "Tell me more about market 4" / "What are the outcomes on market 4?"
 → node market.mjs --market 4
@@ -365,6 +388,8 @@ Features planned for future versions of this skill:
 
 ## Notes
 
-- Contract: `0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443` (Base Sepolia, hardcoded)
-- RPC: public endpoints used by default. Set `PRECOG_RPC_URL` to override.
-- Wallet: generated locally, stored in `~/.openclaw/.env`, never leaves the machine.
+- **Testnet contract:** `0x61ec71F1Fd37ecc20d695E83F3D68e82bEfe8443` (Base Sepolia, chain 84532)
+- **Mainnet contract:** `0x00000000000c109080dfa976923384b97165a57a` (Base, chain 8453)
+- **Default network:** `sepolia`. Pass `--network mainnet` or set `PRECOG_NETWORK=mainnet` for mainnet.
+- **RPC:** public endpoints used by default. Set `PRECOG_RPC_URL` to override (applies to whichever network is active).
+- **Wallet:** generated locally, stored in `~/.openclaw/.env`, never leaves the machine.

@@ -10,10 +10,12 @@ import * as client from "./lib/client.mjs";
 import { parseArgs, requireArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { multiread, getWallet, outcomes, fromRaw, pct } = { ...client, ...deps };
   const _parseArgs   = deps.parseArgs   ?? parseArgs;
   const _requireArgs = deps.requireArgs ?? requireArgs;
   const a = _parseArgs();
+  if (a.network) client.setNetwork(a.network);
+
+  const { multiread, getWallet, outcomes, fromRaw, pct } = { ...client, ...deps };
   _requireArgs(a, ["market"]);
 
   const marketId = BigInt(a.market);

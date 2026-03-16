@@ -11,10 +11,11 @@ import * as client from "./lib/client.mjs";
 import { parseArgs } from "./lib/args.mjs";
 
 export async function main(deps = {}) {
-  const { read, multiread, outcomes, pct, status, date } = { ...client, ...deps };
   const _parseArgs = deps.parseArgs ?? parseArgs;
+  const a = _parseArgs();
+  if (a.network) client.setNetwork(a.network);
 
-  const a     = _parseArgs();
+  const { read, multiread, outcomes, pct, status, date } = { ...client, ...deps };
   const total = await read("createdMarkets");
   if (total === 0n) { console.log("No markets found."); return []; }
 
