@@ -2,11 +2,17 @@
 name: precog
 description: "Trade on prediction markets. Create a local wallet, list markets, check prices, buy and sell outcome shares. Coming soon: create and fund markets directly from this skill."
 homepage: "https://github.com/openclaw/precog-skill"
+env:
+  PRIVATE_KEY:
+    description: "Secp256k1 private key (0x-prefixed) for signing transactions. Generated locally by running setup.mjs --generate and saved to ~/.openclaw/.env. Never transmitted over the network."
+    required: true
+  PRECOG_RPC_URL:
+    description: "Override the default public RPC endpoints (https://sepolia.base.org for testnet, https://mainnet.base.org for mainnet). Use a trusted endpoint only."
+    required: false
+  PRECOG_NETWORK:
+    description: "Default network: 'sepolia' (testnet, default) or 'mainnet' (Base mainnet, real funds). Can be overridden per-command with --network."
+    required: false
 requires:
-  env:
-    PRIVATE_KEY: "Secp256k1 private key (0x-prefixed) for signing transactions. Generated locally by running setup.mjs --generate and saved to ~/.openclaw/.env. Never transmitted over the network. Required for buy/sell; optional (can be set manually) for read-only operations."
-    PRECOG_RPC_URL: "optional — override the default public RPC endpoints (https://sepolia.base.org for testnet, https://mainnet.base.org for mainnet). Use a trusted endpoint only."
-    PRECOG_NETWORK: "optional — default network to use: 'sepolia' (testnet, default) or 'mainnet' (Base mainnet, real funds). Can be overridden per-command with --network."
   bins:
     - node
     - npm
